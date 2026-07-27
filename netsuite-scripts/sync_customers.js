@@ -37,11 +37,8 @@ define(['N/search', 'N/https', 'N/log', 'N/runtime'],
                 var customersToSync = [];
                 customerSearch.run().each(function(result) {
                     customersToSync.push({
-                        netsuite_id: result.getValue('internalid'),
+                        net_suite_id: result.getValue('internalid'),
                         name: result.getValue('companyname') || 'Unknown',
-                        email: result.getValue('email') || '',
-                        phone: result.getValue('phone') || '',
-                        sales_rep_id: result.getValue('salesrep') || null,
                         balance: parseFloat(result.getValue('balance')) || 0.00
                     });
                     return true; 
