@@ -50,7 +50,7 @@ define(['N/search', 'N/https', 'N/log', 'N/runtime'],
 
                 // 3. Push to Supabase via REST API
                 var response = https.post({
-                    url: SUPABASE_URL + '/rest/v1/customers',
+                    url: SUPABASE_URL + '/rest/v1/customers?on_conflict=net_suite_id',
                     headers: {
                         'apikey': SUPABASE_SERVICE_KEY,
                         'Authorization': 'Bearer ' + SUPABASE_SERVICE_KEY,
