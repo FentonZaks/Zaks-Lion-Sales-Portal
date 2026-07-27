@@ -55,6 +55,7 @@ define(['N/search', 'N/https', 'N/log', 'N/runtime'],
                         'apikey': SUPABASE_SERVICE_KEY,
                         'Authorization': 'Bearer ' + SUPABASE_SERVICE_KEY,
                         'Content-Type': 'application/json',
+                        'Accept': 'application/json',
                         'Prefer': 'resolution=merge-duplicates' // Upsert logic
                     },
                     body: JSON.stringify(customersToSync)
