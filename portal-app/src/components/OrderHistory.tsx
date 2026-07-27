@@ -1,6 +1,4 @@
 
-import React from 'react';
-
 export function OrderHistory() {
     return (
         <div className="card" style={{ marginTop: '1.5rem' }}>

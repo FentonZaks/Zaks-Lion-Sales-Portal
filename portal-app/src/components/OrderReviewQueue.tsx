@@ -1,6 +1,4 @@
 
-import React from 'react';
-
 export function OrderReviewQueue() {
     return (
         <div className="card">

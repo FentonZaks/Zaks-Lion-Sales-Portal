@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { CustomerList } from '../components/CustomerList';
 import { FollowUpList } from '../components/FollowUpList';
 

@@ -1,6 +1,4 @@
 
-import React from 'react';
-
 export function FollowUpList() {
     return (
         <div className="card">

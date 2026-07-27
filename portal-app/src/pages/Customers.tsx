@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { CustomerProfile } from '../components/CustomerProfile';
 import { ActivityTimeline } from '../components/ActivityTimeline';
 import { ActivityForms } from '../components/ActivityForms';

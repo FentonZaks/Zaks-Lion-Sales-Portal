@@ -1,6 +1,4 @@
 
-import React from 'react';
-
 export function ProductCatalog() {
     return (
         <div className="card">
