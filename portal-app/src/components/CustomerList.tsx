@@ -179,6 +179,7 @@ export function CustomerList() {
                   {customers.length === 0 ? (
                     <div>No customers found.</div>
                   ) : (
+                    <div className="table-responsive">
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                         <thead>
                             <tr style={{ borderBottom: '2px solid var(--border-color)', backgroundColor: 'var(--bg-color)' }}>
@@ -273,6 +274,7 @@ export function CustomerList() {
                             })}
                         </tbody>
                     </table>
+                </div>
                   )}
                   
                   {hasMore && (

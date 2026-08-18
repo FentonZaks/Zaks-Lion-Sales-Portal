@@ -419,7 +419,7 @@ export const ProductRestrictionsManager: React.FC = () => {
           No products found matching your criteria.
         </div>
       ) : (
-        <div style={{ overflowX: 'auto' }}>
+        <div className="table-responsive">
           <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border-color)' }}>

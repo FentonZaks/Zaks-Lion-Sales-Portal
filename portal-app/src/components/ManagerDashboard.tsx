@@ -332,44 +332,46 @@ export function ManagerDashboard() {
             </div>
 
             <h3 style={{ fontSize: '1.25rem', marginBottom: '1rem', color: 'var(--primary-color)' }}>Sales Representative Performance</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {repGroups.map(rep => (
-                    <div key={rep.repName} style={{ border: '1px solid var(--border-color)', borderRadius: '8px', background: 'var(--bg-secondary)' }}>
-                        {/* Rep Header */}
-                        <div style={{ padding: '1rem', display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', alignItems: 'center', background: 'var(--bg-color)' }}>
-    <div style={{ fontWeight: '600', fontSize: '1.1rem', color: 'var(--text-primary)' }}>{rep.repName}</div>
+            <div className="table-responsive">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', minWidth: '700px' }}>
+                    {repGroups.map(rep => (
+                        <div key={rep.repName} style={{ border: '1px solid var(--border-color)', borderRadius: '8px', background: 'var(--bg-secondary)' }}>
+                            {/* Rep Header */}
+                            <div style={{ padding: '1rem', display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', alignItems: 'center', background: 'var(--bg-color)' }}>
+        <div style={{ fontWeight: '600', fontSize: '1.1rem', color: 'var(--text-primary)' }}>{rep.repName}</div>
 
-                            <div style={{ textAlign: 'right', fontWeight: '500' }}>
-                                <div style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Portal MTD</div>
-                                {formatCurrency(rep.portalMtd)}
+                                <div style={{ textAlign: 'right', fontWeight: '500' }}>
+                                    <div style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Portal MTD</div>
+                                    {formatCurrency(rep.portalMtd)}
+                                </div>
+                                <div style={{ textAlign: 'right', fontWeight: '500', opacity: isCurrentMonth || isPreviousMonth ? 1 : 0.5 }}>
+                                    <div style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)' }}>NetSuite MTD</div>
+                                    {formatCurrency(rep.netSuiteMtd)}
+                                </div>
                             </div>
-                            <div style={{ textAlign: 'right', fontWeight: '500', opacity: isCurrentMonth || isPreviousMonth ? 1 : 0.5 }}>
-                                <div style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)' }}>NetSuite MTD</div>
-                                {formatCurrency(rep.netSuiteMtd)}
-                            </div>
+                            {/* Visitor sub‑header */}
+                            {rep.visitors.length > 0 && (
+                                <div style={{ padding: '0.5rem 1rem', display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', background: 'var(--bg-color)', opacity: 0.7, marginLeft: '1rem', fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: '600' }}>
+                                    <div>User</div>
+                                    <div style={{ textAlign: 'right' }}>Portal Sales</div>
+                                    <div style={{ textAlign: 'right' }}>Visits</div>
+                                    <div style={{ textAlign: 'right' }}>Calls</div>
+                                    <div style={{ textAlign: 'right' }}>Follow-ups</div>
+                                </div>
+                            )}
+                            {/* Visitor rows */}
+                            {rep.visitors.map(v => (
+                                <div key={v.id} style={{ padding: '0.75rem 1rem', display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', background: 'var(--bg-color)', opacity: 0.85, marginLeft: '1rem', borderTop: '1px solid var(--border-color)' }}>
+                                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{v.name}</div>
+                                    <div style={{ textAlign: 'right', fontSize: '0.85rem' }}>{formatCurrency(v.portalMtd)}</div>
+                                    <div style={{ textAlign: 'right', fontSize: '0.85rem' }}>{v.visits}</div>
+                                    <div style={{ textAlign: 'right', fontSize: '0.85rem' }}>{v.calls}</div>
+                                    <div style={{ textAlign: 'right', fontSize: '0.85rem' }}>{v.completedFollowUps}</div>
+                                </div>
+                            ))}
                         </div>
-                        {/* Visitor sub‑header */}
-                        {rep.visitors.length > 0 && (
-                            <div style={{ padding: '0.5rem 1rem', display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', background: 'var(--bg-color)', opacity: 0.7, marginLeft: '1rem', fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: '600' }}>
-                                <div>User</div>
-                                <div style={{ textAlign: 'right' }}>Portal Sales</div>
-                                <div style={{ textAlign: 'right' }}>Visits</div>
-                                <div style={{ textAlign: 'right' }}>Calls</div>
-                                <div style={{ textAlign: 'right' }}>Follow-ups</div>
-                            </div>
-                        )}
-                        {/* Visitor rows */}
-                        {rep.visitors.map(v => (
-                            <div key={v.id} style={{ padding: '0.75rem 1rem', display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', background: 'var(--bg-color)', opacity: 0.85, marginLeft: '1rem', borderTop: '1px solid var(--border-color)' }}>
-                                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{v.name}</div>
-                                <div style={{ textAlign: 'right', fontSize: '0.85rem' }}>{formatCurrency(v.portalMtd)}</div>
-                                <div style={{ textAlign: 'right', fontSize: '0.85rem' }}>{v.visits}</div>
-                                <div style={{ textAlign: 'right', fontSize: '0.85rem' }}>{v.calls}</div>
-                                <div style={{ textAlign: 'right', fontSize: '0.85rem' }}>{v.completedFollowUps}</div>
-                            </div>
-                        ))}
-                    </div>
-                ))}
+                    ))}
+                </div>
             </div>
         </div>
     );
