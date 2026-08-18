@@ -83,3 +83,34 @@ Once UAT is approved in Staging, repeat the process for the live Production envi
 ## 4. Post-Launch CI/CD Pipeline
 - **Continuous Integration**: The `.github/workflows/ci.yml` file will automatically test any new code pushed to the `main` branch.
 - **Continuous Deployment**: Once code is merged into `main`, Vercel will automatically detect the change and seamlessly deploy the updates to `sales.zaksfoods.ca` without downtime.
+
+---
+
+## 5. NetSuite Sync Scripts Setup
+
+To ensure data seamlessly flows from NetSuite to the Supabase portal, two SuiteScripts must be deployed in NetSuite. Please follow these exact steps to ensure they are logged correctly for future handoffs.
+
+### 5.1. Customer Sync Script
+1. **Upload File**: Navigate to **Customization > Scripting > Scripts > New**. Upload `sync_customers.js` from the `/netsuite-scripts/` folder.
+2. **Create Script Record**:
+   - **Name**: `Zaks Sales Portal - Customer Sync`
+   - **ID**: `_zaks_portal_cust_sync`
+   - **Type**: Scheduled Script
+3. **Deploy Script**:
+   - Navigate to the Deployments tab.
+   - **Applies To**: Ensure it is left blank or appropriately targeted if necessary (though it is a scheduled script).
+   - **Status**: Testing (for Sandbox) or Scheduled (for Production).
+   - **Schedule**: Set to run every 15 or 30 minutes, depending on the business requirement for customer data freshness.
+
+### 5.2. Product Sync Script
+1. **Upload File**: Navigate to **Customization > Scripting > Scripts > New**. Upload `sync_products.js` from the `/netsuite-scripts/` folder.
+2. **Create Script Record**:
+   - **Name**: `Zaks Sales Portal - Product Sync`
+   - **ID**: `_zaks_portal_prod_sync`
+   - **Type**: Scheduled Script
+3. **Deploy Script**:
+   - Navigate to the Deployments tab.
+   - **Status**: Testing (for Sandbox) or Scheduled (for Production).
+   - **Schedule**: Set to run every 1 to 4 hours. Product data (and inventory) changes frequently, but fetching the entire catalog is heavy. Adjust this cadence based on your inventory volatility.
+
+> **Note for Future Admins**: Both scripts contain hardcoded Supabase URLs and Service Keys at the top of the file (`execute` function). When moving from Sandbox to Production, you **must** update these two variables in the script files to point to the `zaks-sales-portal-prod` Supabase project credentials.

@@ -1,32 +1,74 @@
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { supabase } from './lib/supabase';
+import type { Session } from '@supabase/supabase-js';
+import { Auth } from './components/Auth';
 import { Dashboard } from './pages/Dashboard';
 import { Customers } from './pages/Customers';
+import { CustomerGallery } from './pages/CustomerGallery';
+import { OrderBuilder } from './components/OrderBuilder';
 import { ManagerDashboard } from './components/ManagerDashboard';
 import { AdminSyncDashboard } from './components/AdminSyncDashboard';
-import { OrderBuilder } from './components/OrderBuilder';
 import './index.css';
 
+function Navigation() {
+  const location = useLocation();
+  const isActive = (path: string) => location.pathname === path;
+
+  return (
+    <nav className="sidebar">
+      <h2 style={{ padding: '1rem 1.5rem', color: 'var(--primary-color)', fontSize: '1.25rem', fontWeight: 700 }}>Zaks / Lion Portal</h2>
+      <ul style={{ listStyle: 'none', padding: '1rem 0', margin: 0, flex: 1 }}>
+        <li><Link to="/" className={`nav-link ${isActive('/') ? 'active' : ''}`}>Sales Dashboard</Link></li>
+        <li><Link to="/customers" className={`nav-link ${isActive('/customers') ? 'active' : ''}`}>Customers</Link></li>
+        <hr style={{ margin: '1rem 1.5rem', border: 'none', borderTop: '1px solid var(--border-color)' }} />
+        <li><Link to="/manager" className={`nav-link ${isActive('/manager') ? 'active' : ''}`}>Manager Overview</Link></li>
+        <li><Link to="/admin" className={`nav-link ${isActive('/admin') ? 'active' : ''}`}>Admin / IT Sync</Link></li>
+      </ul>
+      <div style={{ padding: '1.5rem' }}>
+        <button 
+          onClick={() => supabase.auth.signOut()}
+          style={{ width: '100%', padding: '0.75rem', backgroundColor: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer' }}
+        >
+          Sign Out
+        </button>
+      </div>
+    </nav>
+  );
+}
+
 function App() {
+  const [session, setSession] = useState<Session | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  if (!session) {
+    return <Auth />;
+  }
+
   return (
     <Router>
-      <div style={{ display: 'flex', minHeight: '100vh' }}>
-        <aside style={{ width: '250px', backgroundColor: 'var(--bg-color)', padding: '1rem', borderRight: '1px solid var(--border-color)' }}>
-          <h2 style={{ color: 'var(--primary-color)', marginBottom: '2rem' }}>Zaks / Lion Portal</h2>
-          <nav style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <Link to="/" style={{ textDecoration: 'none', color: 'var(--text-color)', fontWeight: 'bold' }}>Sales Dashboard</Link>
-            <Link to="/customers" style={{ textDecoration: 'none', color: 'var(--text-color)', fontWeight: 'bold' }}>Customers</Link>
-            <Link to="/order" style={{ textDecoration: 'none', color: 'var(--text-color)', fontWeight: 'bold' }}>Draft Order</Link>
-            <div style={{ margin: '1rem 0', borderTop: '1px solid var(--border-color)' }}></div>
-            <Link to="/manager" style={{ textDecoration: 'none', color: 'var(--text-color)' }}>Manager Overview</Link>
-            <Link to="/admin" style={{ textDecoration: 'none', color: 'var(--text-color)' }}>Admin / IT Sync</Link>
-          </nav>
-        </aside>
-        
-        <main style={{ flexGrow: 1, padding: '2rem', backgroundColor: 'var(--surface-color)' }}>
+      <div className="layout">
+        <Navigation />
+        <main className="main-content">
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/customers" element={<Customers />} />
-            <Route path="/order" element={<OrderBuilder />} />
+            <Route path="/customers/:id" element={<Customers />} />
+            <Route path="/customers/:id/order" element={<OrderBuilder />} />
+            <Route path="/customers/:id/gallery" element={<CustomerGallery />} />
             <Route path="/manager" element={<ManagerDashboard />} />
             <Route path="/admin" element={<AdminSyncDashboard />} />
           </Routes>
