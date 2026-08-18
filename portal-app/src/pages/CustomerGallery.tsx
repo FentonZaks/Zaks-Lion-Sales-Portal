@@ -131,8 +131,7 @@ export function CustomerGallery() {
                             overflow: 'hidden', 
                             border: '1px solid var(--border-color)',
                             backgroundColor: '#fff',
-                            aspectRatio: '1',
-                            group: 'true'
+                            aspectRatio: '1'
                         }} className="image-card">
                             {img.url ? (
                                 <img 

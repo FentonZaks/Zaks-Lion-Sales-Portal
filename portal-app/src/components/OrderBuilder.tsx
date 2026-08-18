@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { ShoppingCart, Package, AlertTriangle, AlertCircle, CheckCircle2, Search, ChevronDown, ChevronRight, Info } from 'lucide-react';
+import { ShoppingCart, Package, AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, Info } from 'lucide-react';
 
 interface Product {
     id: string;
@@ -80,7 +80,7 @@ export function OrderBuilder() {
         setCustomerLocation(locData || { province: '', country: '' });
 
         // 3. Fetch all active and non-hidden products
-        const { data: prodData, error } = await supabase
+        const { data: prodData } = await supabase
             .from('products')
             .select('*')
             .eq('is_active', true)

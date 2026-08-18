@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Link } from 'react-router-dom';
+
 import './../index.css';
 
 interface Customer {
@@ -74,7 +74,7 @@ export function CustomerList() {
             .select('roles(name)')
             .eq('user_id', user.id);
         
-        const hasAdminRole = roles?.some(r => r.roles?.name === 'ADMIN' || r.roles?.name === 'MANAGER');
+        const hasAdminRole = roles?.some(r => (r.roles as any)?.name === 'ADMIN' || (r.roles as any)?.name === 'MANAGER');
         setIsAdmin(!!hasAdminRole);
 
         if (hasAdminRole) {

@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Upload, Camera, Loader2, ImagePlus } from 'lucide-react';
+import { Upload, Camera, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface ImageUploadProps {

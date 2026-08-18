@@ -26,7 +26,7 @@ export function FollowUpForm({ customerId, onFollowUpCreated }: { customerId: st
             .select('roles(name)')
             .eq('user_id', user.id);
         
-        const hasAdminRole = roles?.some(r => r.roles?.name === 'ADMIN' || r.roles?.name === 'MANAGER');
+        const hasAdminRole = roles?.some(r => (r.roles as any)?.name === 'ADMIN' || (r.roles as any)?.name === 'MANAGER');
         setIsAdmin(!!hasAdminRole);
 
         if (hasAdminRole) {
