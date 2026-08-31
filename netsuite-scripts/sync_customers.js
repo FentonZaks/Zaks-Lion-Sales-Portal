@@ -85,12 +85,12 @@ define(['N/search', 'N/https', 'N/log', 'N/runtime'],
                             ['mainline', 'is', 'T']
                         ],
                         columns: [
-                            search.createColumn({ name: 'entity' }),
-                            search.createColumn({ name: 'internalid', sort: search.Sort.DESC }),
-                            search.createColumn({ name: 'trandate' }),
-                            search.createColumn({ name: 'fxamount' }),
-                            search.createColumn({ name: 'amount' }),
-                            search.createColumn({ name: 'tranid' })
+                            search.createColumn({ name: 'entity', summary: search.Summary.GROUP }),
+                            search.createColumn({ 
+                                name: 'formulatext', 
+                                formula: "TO_CHAR({trandate}, 'YYYY-MM-DD') || '|' || NVL({tranid}, 'Unknown') || '|' || NVL({fxamount}, {amount})",
+                                summary: search.Summary.MAX
+                            })
                         ]
                     });
 
@@ -98,13 +98,15 @@ define(['N/search', 'N/https', 'N/log', 'N/runtime'],
                     pagedInvoiceData.pageRanges.forEach(function(pageRange) {
                         var page = pagedInvoiceData.fetch({ index: pageRange.index });
                         page.data.forEach(function(result) {
-                            var custId = result.getValue('entity');
-                            if (custId && !latestInvoices[custId]) {
-                                var nativeAmount = result.getValue('fxamount') || result.getValue('amount');
+                            var custId = result.getValue({ name: 'entity', summary: search.Summary.GROUP });
+                            var maxStr = result.getValue({ name: 'formulatext', summary: search.Summary.MAX });
+                            
+                            if (custId && maxStr) {
+                                var parts = maxStr.split('|');
                                 latestInvoices[custId] = {
-                                    date: result.getValue('trandate'),
-                                    amount: parseFloat(nativeAmount) || 0.00,
-                                    number: result.getValue('tranid')
+                                    date: parts[0],
+                                    number: parts[1],
+                                    amount: parseFloat(parts[2]) || 0.00
                                 };
                             }
                         });
