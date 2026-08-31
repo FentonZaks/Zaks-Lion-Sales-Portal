@@ -336,6 +336,17 @@ define(['N/search', 'N/https', 'N/log', 'N/runtime'],
                         });
                     });
 
+                    // --- DIAGNOSTIC: Check exact payload for 4877 ---
+                    var debugPayload = customersToSync.filter(function(c) { return c.net_suite_id == '4877' || c.net_suite_id == 4877; });
+                    if (debugPayload.length > 0) {
+                        log.audit('DEBUG PAYLOAD 4877', JSON.stringify({
+                            last_invoice_date: debugPayload[0].last_invoice_date,
+                            last_invoice_number: debugPayload[0].last_invoice_number,
+                            last_invoice_amount: debugPayload[0].last_invoice_amount
+                        }));
+                    }
+                    // --- END DIAGNOSTIC ---
+
                     // Push batch to Supabase
                     var response = https.post({
                         url: SUPABASE_URL + '/rest/v1/rpc/sync_customer_data',
