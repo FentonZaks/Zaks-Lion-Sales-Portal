@@ -64,7 +64,7 @@ export function CategoryDistribution({ categoryLastInvoiceDates }: CategoryDistr
     } else if (monthsDiff <= 6) {
       return '#eab308'; // Yellow
     } else if (monthsDiff <= 12) {
-      return '#fb923c'; // Lighter Orange
+      return '#3b82f6'; // Blue
     } else {
       return '#ef4444'; // Red
     }
@@ -126,7 +126,7 @@ export function CategoryDistribution({ categoryLastInvoiceDates }: CategoryDistr
           <span>Purchased (4-6 Months)</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <div style={{ width: '14px', height: '14px', borderRadius: '4px', backgroundColor: '#fb923c', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }} />
+          <div style={{ width: '14px', height: '14px', borderRadius: '4px', backgroundColor: '#3b82f6', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }} />
           <span>Purchased (7-12 Months)</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
