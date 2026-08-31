@@ -7,11 +7,13 @@ export function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setMessage(null);
     
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -24,6 +26,28 @@ export function Auth() {
     setLoading(false);
   };
 
+  const handleResetPassword = async () => {
+    if (!email) {
+      setError("Please enter your email address first.");
+      return;
+    }
+    
+    setLoading(true);
+    setError(null);
+    setMessage(null);
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin,
+    });
+
+    if (error) {
+      setError(error.message);
+    } else {
+      setMessage("Password reset email sent! Please check your inbox.");
+    }
+    setLoading(false);
+  };
+
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: 'var(--bg-secondary)' }}>
       <div className="card" style={{ maxWidth: '400px', width: '100%', padding: '2rem' }}>
@@ -32,6 +56,12 @@ export function Auth() {
         {error && (
           <div style={{ backgroundColor: '#fee2e2', color: '#991b1b', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>
             {error}
+          </div>
+        )}
+
+        {message && (
+          <div style={{ backgroundColor: '#dcfce7', color: '#166534', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>
+            {message}
           </div>
         )}
 
@@ -55,7 +85,6 @@ export function Auth() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}
-              required
             />
           </div>
           
@@ -73,9 +102,27 @@ export function Auth() {
               cursor: loading ? 'not-allowed' : 'pointer'
             }}
           >
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? 'Processing...' : 'Sign In'}
           </button>
         </form>
+
+        <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+          <button 
+            type="button" 
+            onClick={handleResetPassword}
+            disabled={loading}
+            style={{ 
+              background: 'none', 
+              border: 'none', 
+              color: 'var(--primary-color)', 
+              textDecoration: 'underline', 
+              cursor: loading ? 'not-allowed' : 'pointer',
+              fontSize: '0.9rem'
+            }}
+          >
+            Forgot Password?
+          </button>
+        </div>
       </div>
     </div>
   );
