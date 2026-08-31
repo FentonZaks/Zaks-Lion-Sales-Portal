@@ -31,7 +31,7 @@ define(['N/search', 'N/https', 'N/log', 'N/runtime'],
 
                 // 1. Configure Supabase Credentials
                 const SUPABASE_URL = 'https://gurkqbfgvpxtxhzgjriy.supabase.co';
-                const SUPABASE_SERVICE_KEY = 'sb_secret_hkuFUv_-XhIIyGH0QACdXQ_qUkOIj7n'; 
+                const SUPABASE_SERVICE_KEY = 'YOUR_SUPABASE_SERVICE_ROLE_KEY'; 
 
                 var isProduction = runtime.envType === runtime.EnvType.PRODUCTION;
 
