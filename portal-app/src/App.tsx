@@ -6,6 +6,7 @@ import type { Session } from '@supabase/supabase-js';
 import { Auth } from './components/Auth';
 import { Dashboard } from './pages/Dashboard';
 import { Customers } from './pages/Customers';
+import { NewCustomer } from './pages/NewCustomer';
 import { CustomerGallery } from './pages/CustomerGallery';
 import { OrderBuilder } from './components/OrderBuilder';
 import { ManagerDashboard } from './components/ManagerDashboard';
@@ -15,7 +16,20 @@ import './index.css';
 function Navigation() {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const isActive = (path: string) => location.pathname === path;
+
+  useEffect(() => {
+    async function checkAdminStatus() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: roles } = await supabase.from('user_roles').select('roles(name)').eq('user_id', user.id);
+        const hasStrictAdminRole = roles?.some(r => (r.roles as any)?.name === 'ADMIN');
+        setIsAdmin(!!hasStrictAdminRole);
+      }
+    }
+    checkAdminStatus();
+  }, []);
 
   const closeMenu = () => setIsOpen(false);
 
@@ -32,6 +46,7 @@ function Navigation() {
         <ul style={{ listStyle: 'none', padding: '1rem 0', margin: 0, flex: 1 }}>
           <li><Link onClick={closeMenu} to="/" className={`nav-link ${isActive('/') ? 'active' : ''}`}>Sales Dashboard</Link></li>
           <li><Link onClick={closeMenu} to="/customers" className={`nav-link ${isActive('/customers') ? 'active' : ''}`}>Customers</Link></li>
+          {isAdmin && <li><Link onClick={closeMenu} to="/customers/new" className={`nav-link ${isActive('/customers/new') ? 'active' : ''}`}>New Customer</Link></li>}
           <hr style={{ margin: '1rem 1.5rem', border: 'none', borderTop: '1px solid var(--border-color)' }} />
           <li><Link onClick={closeMenu} to="/manager" className={`nav-link ${isActive('/manager') ? 'active' : ''}`}>Manager Overview</Link></li>
           <li><Link onClick={closeMenu} to="/admin" className={`nav-link ${isActive('/admin') ? 'active' : ''}`}>Admin / IT Sync</Link></li>
@@ -81,6 +96,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/customers" element={<Customers />} />
+            <Route path="/customers/new" element={<NewCustomer />} />
             <Route path="/customers/:id" element={<Customers />} />
             <Route path="/customers/:id/order" element={<OrderBuilder />} />
             <Route path="/customers/:id/gallery" element={<CustomerGallery />} />
