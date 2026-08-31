@@ -182,7 +182,7 @@ export function CustomerList() {
                     <div className="table-responsive">
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                         <thead>
-                            <tr style={{ borderBottom: '2px solid var(--border-color)', backgroundColor: 'var(--bg-color)' }}>
+                            <tr style={{ borderBottom: '2px solid var(--border-color)', backgroundColor: 'var(--bg-color)', whiteSpace: 'nowrap' }}>
                                 <th style={{ padding: '1rem' }}>Customer</th>
                                 <th style={{ padding: '1rem' }}>Banner</th>
                                 
