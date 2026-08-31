@@ -180,16 +180,16 @@ export function CustomerList() {
                     <div>No customers found.</div>
                   ) : (
                     <div className="table-responsive">
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
                         <thead>
-                            <tr style={{ borderBottom: '2px solid var(--border-color)', backgroundColor: 'var(--bg-color)', whiteSpace: 'nowrap' }}>
-                                <th style={{ padding: '1rem' }}>Customer</th>
-                                <th style={{ padding: '1rem' }}>Banner</th>
+                            <tr style={{ borderBottom: '2px solid var(--border-color)', backgroundColor: 'var(--bg-color)' }}>
+                                <th style={{ padding: '0.75rem 0.5rem' }}>Customer</th>
+                                <th style={{ padding: '0.75rem 0.5rem' }}>Banner</th>
                                 
-                                <th style={{ padding: '1rem' }}>Open Follow-ups</th>
+                                <th style={{ padding: '0.75rem 0.5rem' }}>Open Follow-ups</th>
                                 
                                 <th 
-                                    style={{ padding: '1rem', cursor: 'pointer' }}
+                                    style={{ padding: '0.75rem 0.5rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
                                     onClick={() => {
                                         setSortColumn('mtd_revenue');
                                         setSortDirection(sortColumn === 'mtd_revenue' && sortDirection === 'desc' ? 'asc' : 'desc');
@@ -199,7 +199,7 @@ export function CustomerList() {
                                 </th>
                                 
                                 <th 
-                                    style={{ padding: '1rem', cursor: 'pointer' }}
+                                    style={{ padding: '0.75rem 0.5rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
                                     onClick={() => {
                                         setSortColumn('ytd_revenue');
                                         setSortDirection(sortColumn === 'ytd_revenue' && sortDirection === 'desc' ? 'asc' : 'desc');
@@ -209,7 +209,7 @@ export function CustomerList() {
                                 </th>
                                 
                                 <th 
-                                    style={{ padding: '1rem', cursor: 'pointer' }}
+                                    style={{ padding: '0.75rem 0.5rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
                                     onClick={() => {
                                         setSortColumn('balance');
                                         setSortDirection(sortColumn === 'balance' && sortDirection === 'desc' ? 'asc' : 'desc');
@@ -219,7 +219,7 @@ export function CustomerList() {
                                 </th>
                                 
                                 <th 
-                                    style={{ padding: '1rem', cursor: 'pointer' }}
+                                    style={{ padding: '0.75rem 0.5rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
                                     onClick={() => {
                                         setSortColumn('last_invoice_date');
                                         setSortDirection(sortColumn === 'last_invoice_date' && sortDirection === 'desc' ? 'asc' : 'desc');
@@ -229,7 +229,7 @@ export function CustomerList() {
                                 </th>
                                 
                                 <th 
-                                    style={{ padding: '1rem', cursor: 'pointer' }}
+                                    style={{ padding: '0.75rem 0.5rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
                                     onClick={() => {
                                         setSortColumn('last_activity_date');
                                         setSortDirection(sortColumn === 'last_activity_date' && sortDirection === 'desc' ? 'asc' : 'desc');
@@ -250,23 +250,23 @@ export function CustomerList() {
                                     onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                     onClick={() => window.location.href = `/customers/${customer.id}`}
                                 >
-                                    <td style={{ padding: '1rem' }}>
+                                    <td style={{ padding: '0.75rem 0.5rem', minWidth: '200px' }}>
                                         <strong>{customer.name}</strong>
-                                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>ID: {customer.net_suite_id}</div>
+                                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>ID: {customer.net_suite_id}</div>
                                     </td>
-                                    <td style={{ padding: '1rem', color: 'var(--text-secondary)' }}>{customer.banner || '-'}</td>
-                                    <td style={{ padding: '1rem', fontWeight: 'bold', color: openFollowUpsCount > 0 ? '#ef4444' : 'inherit' }}>
+                                    <td style={{ padding: '0.75rem 0.5rem', color: 'var(--text-secondary)' }}>{customer.banner || '-'}</td>
+                                    <td style={{ padding: '0.75rem 0.5rem', fontWeight: 'bold', color: openFollowUpsCount > 0 ? '#ef4444' : 'inherit' }}>
                                         {openFollowUpsCount > 0 ? `${openFollowUpsCount} Pending` : '-'}
                                     </td>
-                                    <td style={{ padding: '1rem', fontWeight: '500' }}>{customer.mtd_revenue ? `$${customer.mtd_revenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}</td>
-                                    <td style={{ padding: '1rem', fontWeight: '500' }}>{customer.ytd_revenue ? `$${customer.ytd_revenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}</td>
-                                    <td style={{ padding: '1rem', color: customer.balance > 0 ? 'inherit' : 'green' }}>
+                                    <td style={{ padding: '0.75rem 0.5rem', fontWeight: '500', whiteSpace: 'nowrap' }}>{customer.mtd_revenue ? `$${customer.mtd_revenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}</td>
+                                    <td style={{ padding: '0.75rem 0.5rem', fontWeight: '500', whiteSpace: 'nowrap' }}>{customer.ytd_revenue ? `$${customer.ytd_revenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}</td>
+                                    <td style={{ padding: '0.75rem 0.5rem', whiteSpace: 'nowrap', color: customer.balance > 0 ? 'inherit' : 'green' }}>
                                         ${(customer.balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </td>
-                                    <td style={{ padding: '1rem', color: 'var(--text-secondary)' }}>
+                                    <td style={{ padding: '0.75rem 0.5rem', whiteSpace: 'nowrap', color: 'var(--text-secondary)' }}>
                                         {customer.last_invoice_date ? new Date(customer.last_invoice_date).toLocaleDateString('en-US', { timeZone: 'UTC' }) : '-'}
                                     </td>
-                                    <td style={{ padding: '1rem', color: 'var(--text-secondary)' }}>
+                                    <td style={{ padding: '0.75rem 0.5rem', whiteSpace: 'nowrap', color: 'var(--text-secondary)' }}>
                                         {customer.last_activity_date ? new Date(customer.last_activity_date).toLocaleDateString('en-US') : '-'}
                                     </td>
                                 </tr>
