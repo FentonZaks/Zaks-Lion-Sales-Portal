@@ -80,7 +80,7 @@ define(['N/search', 'N/https', 'N/log', 'N/runtime'],
                     var invoiceSearch = search.create({
                         type: search.Type.TRANSACTION,
                         filters: [
-                            ['type', 'anyof', 'CustInvc'],
+                            ['type', 'anyof', ['CustInvc', 'CashSale']],
                             'AND',
                             ['mainline', 'is', 'T']
                         ],
@@ -99,7 +99,7 @@ define(['N/search', 'N/https', 'N/log', 'N/runtime'],
                         var page = pagedInvoiceData.fetch({ index: pageRange.index });
                         page.data.forEach(function(result) {
                             var custId = result.getValue({ name: 'entity', summary: search.Summary.GROUP });
-                            var maxStr = result.getValue({ name: 'formulatext', summary: search.Summary.MAX });
+                            var maxStr = result.getValue(result.columns[1]);
                             
                             if (custId && maxStr) {
                                 var parts = maxStr.split('|');
@@ -121,8 +121,10 @@ define(['N/search', 'N/https', 'N/log', 'N/runtime'],
                 var TARGET_CATEGORIES = ['Candy', 'Die Cast Car', 'Gen Merch', 'Meat', 'Pet', 'Tech'];
                 try {
                     var catInvoiceSearch = search.create({
-                        type: search.Type.INVOICE,
+                        type: search.Type.TRANSACTION,
                         filters: [
+                            ['type', 'anyof', ['CustInvc', 'CashSale']],
+                            'AND',
                             ['mainline', 'is', 'F'],
                             'AND',
                             ['taxline', 'is', 'F'],
