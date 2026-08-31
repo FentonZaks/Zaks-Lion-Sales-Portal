@@ -93,41 +93,53 @@ define(['N/search', 'N/https', 'N/log', 'N/runtime'],
                 // 2.5 Secondary Search: Latest Invoice per Customer (Global Search)
                 var latestInvoices = {};
                 try {
-                    var invoiceSearch = search.create({
-                        type: search.Type.TRANSACTION,
-                        filters: [
-                            ['type', 'anyof', ['CustInvc', 'CashSale']],
-                            'AND',
-                            ['mainline', 'is', 'T']
-                        ],
-                        columns: [
-                            search.createColumn({ name: 'entity', summary: search.Summary.GROUP }),
-                            search.createColumn({ 
-                                name: 'formulatext', 
-                                formula: "TO_CHAR({trandate}, 'YYYY-MM-DD') || '|' || NVL({tranid}, 'Unknown') || '|' || NVL({fxamount}, {amount})",
-                                summary: search.Summary.MAX
-                            })
-                        ]
-                    });
-
-                    var pagedInvoiceData = invoiceSearch.runPaged({ pageSize: 1000 });
-                    pagedInvoiceData.pageRanges.forEach(function(pageRange) {
-                        var page = pagedInvoiceData.fetch({ index: pageRange.index });
+                    // Extract all active customer IDs to chunk them safely
+                    var allActiveCustomerIds = [];
+                    pagedData.pageRanges.forEach(function(pageRange) {
+                        var page = pagedData.fetch({ index: pageRange.index });
                         page.data.forEach(function(result) {
-                            var custId = result.getValue({ name: 'entity', summary: search.Summary.GROUP });
-                            var maxStr = result.getValue(result.columns[1]);
-                            
-                            if (custId && maxStr) {
-                                var parts = maxStr.split('|');
-                                latestInvoices[custId] = {
-                                    date: parts[0],
-                                    number: parts[1],
-                                    amount: parseFloat(parts[2]) || 0.00
-                                };
-                            }
+                            allActiveCustomerIds.push(result.getValue('internalid'));
                         });
                     });
-                    log.audit('Found Invoices', `Extracted latest invoice details for ${Object.keys(latestInvoices).length} customers.`);
+
+                    // Process in chunks of 50 to guarantee we never hit the 4000 result limit per search
+                    for (var i = 0; i < allActiveCustomerIds.length; i += 50) {
+                        var chunk = allActiveCustomerIds.slice(i, i + 50);
+                        
+                        var specificInvoiceSearch = search.create({
+                            type: search.Type.TRANSACTION,
+                            filters: [
+                                ['type', 'anyof', ['CustInvc', 'CashSale']],
+                                'AND',
+                                ['mainline', 'is', 'T'],
+                                'AND',
+                                ['entity', 'anyof', chunk]
+                            ],
+                            columns: [
+                                search.createColumn({ name: 'entity' }),
+                                search.createColumn({ name: 'trandate', sort: search.Sort.DESC }),
+                                search.createColumn({ name: 'internalid', sort: search.Sort.DESC }),
+                                search.createColumn({ name: 'fxamount' }),
+                                search.createColumn({ name: 'amount' }),
+                                search.createColumn({ name: 'tranid' })
+                            ]
+                        });
+                        
+                        specificInvoiceSearch.run().each(function(res) {
+                            var cid = res.getValue('entity');
+                            if (!latestInvoices[cid]) {
+                                var nativeAmount = res.getValue('fxamount') || res.getValue('amount');
+                                latestInvoices[cid] = {
+                                    date: res.getValue('trandate'),
+                                    amount: parseFloat(nativeAmount) || 0.00,
+                                    number: res.getValue('tranid')
+                                };
+                            }
+                            return true; 
+                        });
+                    }
+
+                    log.audit('Found Invoices', `Extracted latest invoice details for ${Object.keys(latestInvoices).length} customers using safe chunking.`);
                 } catch (err) {
                     log.error('Invoice Search Error', err.message);
                 }
