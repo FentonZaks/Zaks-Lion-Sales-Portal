@@ -98,14 +98,19 @@ define(['N/search', 'N/https', 'N/log', 'N/runtime'],
                         var page = pagedInvoiceData.fetch({ index: pageRange.index });
                         page.data.forEach(function(result) {
                             var custId = result.getValue('entity');
-                            if (custId && !latestInvoices[custId]) {
-                                // Try fxamount first (native currency), then fallback to amount (base currency)
-                                var nativeAmount = result.getValue('fxamount') || result.getValue('amount');
-                                latestInvoices[custId] = {
-                                    date: result.getValue('trandate'),
-                                    amount: parseFloat(nativeAmount) || 0.00,
-                                    number: result.getValue('tranid')
-                                };
+                            if (custId) {
+                                var tranDateStr = result.getValue('trandate');
+                                var tranDateObj = tranDateStr ? new Date(tranDateStr) : new Date(0);
+                                
+                                if (!latestInvoices[custId] || tranDateObj > latestInvoices[custId].dateObj) {
+                                    var nativeAmount = result.getValue('fxamount') || result.getValue('amount');
+                                    latestInvoices[custId] = {
+                                        dateObj: tranDateObj,
+                                        date: tranDateStr,
+                                        amount: parseFloat(nativeAmount) || 0.00,
+                                        number: result.getValue('tranid')
+                                    };
+                                }
                             }
                         });
                     });
