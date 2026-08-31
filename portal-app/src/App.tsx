@@ -22,9 +22,12 @@ function Navigation() {
   useEffect(() => {
     async function checkAdminStatus() {
       const { data: { user } } = await supabase.auth.getUser();
+      console.log('App.tsx checkAdminStatus user:', user?.id);
       if (user) {
-        const { data: roles } = await supabase.from('user_roles').select('roles(name)').eq('user_id', user.id);
+        const { data: roles, error } = await supabase.from('user_roles').select('roles(name)').eq('user_id', user.id);
+        console.log('App.tsx checkAdminStatus roles:', roles, 'error:', error);
         const hasStrictAdminRole = roles?.some(r => (r.roles as any)?.name === 'ADMIN');
+        console.log('App.tsx hasStrictAdminRole:', hasStrictAdminRole);
         setIsAdmin(!!hasStrictAdminRole);
       }
     }
@@ -47,9 +50,15 @@ function Navigation() {
           <li><Link onClick={closeMenu} to="/" className={`nav-link ${isActive('/') ? 'active' : ''}`}>Sales Dashboard</Link></li>
           <li><Link onClick={closeMenu} to="/customers" className={`nav-link ${isActive('/customers') ? 'active' : ''}`}>Customers</Link></li>
           {isAdmin && <li><Link onClick={closeMenu} to="/customers/new" className={`nav-link ${isActive('/customers/new') ? 'active' : ''}`}>New Customer</Link></li>}
-          <hr style={{ margin: '1rem 1.5rem', border: 'none', borderTop: '1px solid var(--border-color)' }} />
+          
+          {(isAdmin || true) && <hr style={{ margin: '1rem 1.5rem', border: 'none', borderTop: '1px solid var(--border-color)' }} />}
+          
+          {/* We can check if they have MANAGER role separately if we wanted, but for now we'll just show it or we can wrap Admin strictly */}
           <li><Link onClick={closeMenu} to="/manager" className={`nav-link ${isActive('/manager') ? 'active' : ''}`}>Manager Overview</Link></li>
-          <li><Link onClick={closeMenu} to="/admin" className={`nav-link ${isActive('/admin') ? 'active' : ''}`}>Admin / IT Sync</Link></li>
+          
+          {isAdmin && (
+            <li><Link onClick={closeMenu} to="/admin" className={`nav-link ${isActive('/admin') ? 'active' : ''}`}>Admin / IT Sync</Link></li>
+          )}
         </ul>
         <div style={{ padding: '1.5rem' }}>
           <button 
