@@ -76,8 +76,11 @@ function Navigation() {
   );
 }
 
+import { UpdatePassword } from './components/UpdatePassword';
+
 function App() {
   const [session, setSession] = useState<Session | null>(null);
+  const [isRecovery, setIsRecovery] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -86,12 +89,19 @@ function App() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsRecovery(true);
+      }
       setSession(session);
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  if (isRecovery) {
+    return <UpdatePassword onComplete={() => setIsRecovery(false)} />;
+  }
 
   if (!session) {
     return <Auth />;
