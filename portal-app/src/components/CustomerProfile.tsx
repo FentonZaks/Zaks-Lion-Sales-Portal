@@ -10,6 +10,7 @@ export function CustomerProfile({ customerId }: { customerId: string }) {
     const [locations, setLocations] = useState<any[]>([]);
     const [contacts, setContacts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isAdmin, setIsAdmin] = useState(false);
 
     useEffect(() => {
         if (!customerId) return;
@@ -20,6 +21,14 @@ export function CustomerProfile({ customerId }: { customerId: string }) {
             const { data: locData } = await supabase.from('customer_locations').select('*').eq('customer_id', customerId);
             const { data: contactData } = await supabase.from('customer_contacts').select('*').eq('customer_id', customerId);
             
+            // Check if strictly Admin (not Manager) to show the Draft Order button
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { data: roles } = await supabase.from('user_roles').select('roles(name)').eq('user_id', user.id);
+                const hasStrictAdminRole = roles?.some(r => (r.roles as any)?.name === 'ADMIN');
+                setIsAdmin(!!hasStrictAdminRole);
+            }
+
             setCustomer(custData);
             setLocations(locData || []);
             setContacts(contactData || []);
@@ -50,9 +59,11 @@ export function CustomerProfile({ customerId }: { customerId: string }) {
                     <Link to={`/customers/${customerId}/gallery`} className="btn btn-secondary" style={{ textDecoration: 'none' }}>
                         View Gallery
                     </Link>
-                    <Link to={`/customers/${customerId}/order`} className="btn btn-primary" style={{ textDecoration: 'none' }}>
-                        New Draft Order
-                    </Link>
+                    {isAdmin && (
+                        <Link to={`/customers/${customerId}/order`} className="btn btn-primary" style={{ textDecoration: 'none' }}>
+                            New Draft Order
+                        </Link>
+                    )}
                 </div>
             </div>
             
