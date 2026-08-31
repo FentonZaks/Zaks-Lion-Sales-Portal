@@ -7,8 +7,10 @@ ALTER TABLE public.products ADD COLUMN IF NOT EXISTS allowed_countries TEXT[] DE
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS is_hidden BOOLEAN DEFAULT false;
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS is_kit_only BOOLEAN DEFAULT false;
-ALTER TABLE public.products ADD COLUMN IF NOT EXISTS inner_carton_qty INTEGER DEFAULT null;
-ALTER TABLE public.products ADD COLUMN IF NOT EXISTS master_case_qty INTEGER DEFAULT null;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS inner_carton_qty BIGINT DEFAULT null;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS master_case_qty BIGINT DEFAULT null;
+ALTER TABLE public.products ALTER COLUMN inner_carton_qty TYPE BIGINT;
+ALTER TABLE public.products ALTER COLUMN master_case_qty TYPE BIGINT;
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS is_archived BOOLEAN DEFAULT false;
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS kit_components JSONB DEFAULT '[]'::jsonb;
 
@@ -41,8 +43,8 @@ BEGIN
             COALESCE((product_record->>'is_active')::boolean, true),
             false, 
             COALESCE((product_record->>'is_kit_only')::boolean, false),
-            (product_record->>'inner_carton_qty')::integer,
-            (product_record->>'master_case_qty')::integer,
+            (product_record->>'inner_carton_qty')::bigint,
+            (product_record->>'master_case_qty')::bigint,
             COALESCE((product_record->>'is_archived')::boolean, false),
             COALESCE(product_record->'kit_components', '[]'::jsonb),
             NOW()

@@ -114,10 +114,30 @@ export function CategoryDistribution({ categoryLastInvoiceDates }: CategoryDistr
       <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
         Category Distribution
       </h3>
+
+      {/* Legend */}
+      <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '1.5rem', fontSize: '0.85rem', flexWrap: 'wrap', color: 'var(--text-secondary)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ width: '14px', height: '14px', borderRadius: '4px', backgroundColor: '#22c55e', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }} />
+          <span>Purchased (0-3 Months)</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ width: '14px', height: '14px', borderRadius: '4px', backgroundColor: '#eab308', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }} />
+          <span>Purchased (4-6 Months)</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ width: '14px', height: '14px', borderRadius: '4px', backgroundColor: '#f97316', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }} />
+          <span>Purchased (7-12 Months)</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ width: '14px', height: '14px', borderRadius: '4px', backgroundColor: '#ef4444', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }} />
+          <span>No Purchase (&gt;12 Months)</span>
+        </div>
+      </div>
       
       <div style={{ 
         display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
         gap: '1.5rem' 
       }}>
         {TARGET_CATEGORIES.map((primaryCat) => (
@@ -126,7 +146,11 @@ export function CategoryDistribution({ categoryLastInvoiceDates }: CategoryDistr
                 {primaryCat}
             </h4>
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: groupedData[primaryCat].length > 5 ? '1fr 1fr' : '1fr', 
+                gap: '0.5rem 1rem' 
+            }}>
                 {groupedData[primaryCat].length === 0 ? (
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>No History</span>
