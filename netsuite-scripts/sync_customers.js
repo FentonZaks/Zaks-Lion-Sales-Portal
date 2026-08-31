@@ -13,6 +13,22 @@ define(['N/search', 'N/https', 'N/log', 'N/runtime'],
 
         function execute(scriptContext) {
             try {
+                // --- DIAGNOSTIC DEBUG BLOCK ---
+                try {
+                    var debugSearch = search.create({
+                        type: search.Type.TRANSACTION,
+                        filters: [['tranid', 'is', 'INVLC1070'], 'AND', ['mainline', 'is', 'T']],
+                        columns: ['type', 'entity', 'trandate', 'amount', 'internalid']
+                    });
+                    debugSearch.run().each(function(res) {
+                        log.audit('DEBUG INVLC1070', 'Type: ' + res.getValue('type') + ' | Entity ID: ' + res.getValue('entity') + ' | Date: ' + res.getValue('trandate') + ' | Internal ID: ' + res.getValue('internalid') + ' | Amount: ' + res.getValue('amount'));
+                        return true;
+                    });
+                } catch (e) {
+                    log.error('Debug Error', e.message);
+                }
+                // --- END DIAGNOSTIC ---
+
                 // 1. Configure Supabase Credentials
                 const SUPABASE_URL = 'https://gurkqbfgvpxtxhzgjriy.supabase.co';
                 const SUPABASE_SERVICE_KEY = 'sb_secret_hkuFUv_-XhIIyGH0QACdXQ_qUkOIj7n'; 
