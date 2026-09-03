@@ -49,7 +49,7 @@ function Navigation() {
         <ul style={{ listStyle: 'none', padding: '1rem 0', margin: 0, flex: 1 }}>
           <li><Link onClick={closeMenu} to="/" className={`nav-link ${isActive('/') ? 'active' : ''}`}>Sales Dashboard</Link></li>
           <li><Link onClick={closeMenu} to="/customers" className={`nav-link ${isActive('/customers') ? 'active' : ''}`}>Customers</Link></li>
-          {isAdmin && <li><Link onClick={closeMenu} to="/customers/new" className={`nav-link ${isActive('/customers/new') ? 'active' : ''}`}>New Customer</Link></li>}
+          <li><Link onClick={closeMenu} to="/customers/new" className={`nav-link ${isActive('/customers/new') ? 'active' : ''}`}>New Customer</Link></li>
           
           {(isAdmin || true) && <hr style={{ margin: '1rem 1.5rem', border: 'none', borderTop: '1px solid var(--border-color)' }} />}
           

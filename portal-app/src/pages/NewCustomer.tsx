@@ -75,11 +75,101 @@ export function NewCustomer() {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
+    const generateCSV = () => {
+        const headers = ["Field", "Value"];
+        const rows = [
+            ["Customer Name", formData.name],
+            ["Legal Name", formData.legal_name],
+            ["Shipping Address", formData.shipping_address],
+            ["City", formData.shipping_city],
+            ["Postal Code", formData.shipping_postal_code],
+            ["Country", formData.shipping_country],
+            ["Banner", formData.banner],
+            ["Channel", formData.channel],
+            ["Price Level", formData.price_level],
+            ["Sales Rep", formData.sales_rep],
+            ["Primary Contact First", formData.primary_first_name],
+            ["Primary Contact Last", formData.primary_last_name],
+            ["Primary Email", formData.primary_email],
+            ["Primary Phone", formData.primary_phone],
+            ["AP Name", formData.ap_name],
+            ["AP Email", formData.ap_email],
+            ["AP Phone", formData.ap_phone]
+        ];
+        
+        const csvContent = [
+            headers.join(","),
+            ...rows.map(row => row.map(val => `"${(val || '').replace(/"/g, '""')}"`).join(","))
+        ].join("\n");
+        
+        return "data:text/csv;base64," + btoa(csvContent);
+    };
+
+    const generatePDFBase64 = (): Promise<string> => {
+        return new Promise((resolve) => {
+            // Dynamically import jspdf to keep frontend bundle smaller
+            import('jspdf').then(({ jsPDF }) => {
+                const doc = new jsPDF();
+                
+                doc.setFontSize(18);
+                doc.text("New Customer Submission", 20, 20);
+                
+                doc.setFontSize(12);
+                let y = 40;
+                
+                const addLine = (label: string, value: string) => {
+                    doc.setFont("helvetica", "bold");
+                    doc.text(`${label}:`, 20, y);
+                    doc.setFont("helvetica", "normal");
+                    doc.text(value || "N/A", 70, y);
+                    y += 8;
+                };
+
+                addLine("Customer Name", formData.name);
+                addLine("Legal Name", formData.legal_name);
+                addLine("Banner", formData.banner);
+                addLine("Channel", formData.channel);
+                addLine("Price Level", formData.price_level);
+                addLine("Sales Rep", formData.sales_rep);
+                
+                y += 5;
+                doc.setFont("helvetica", "bold");
+                doc.text("Shipping Info", 20, y);
+                y += 8;
+                addLine("Address", formData.shipping_address);
+                addLine("City", formData.shipping_city);
+                addLine("Postal Code", formData.shipping_postal_code);
+                addLine("Country", formData.shipping_country);
+                
+                y += 5;
+                doc.setFont("helvetica", "bold");
+                doc.text("Primary Contact", 20, y);
+                y += 8;
+                addLine("Name", `${formData.primary_first_name} ${formData.primary_last_name}`);
+                addLine("Email", formData.primary_email);
+                addLine("Phone", formData.primary_phone);
+                
+                y += 5;
+                doc.setFont("helvetica", "bold");
+                doc.text("Accounts Payable", 20, y);
+                y += 8;
+                addLine("Name", formData.ap_name);
+                addLine("Email", formData.ap_email);
+                addLine("Phone", formData.ap_phone);
+                
+                // Return base64 string
+                const base64String = doc.output('datauristring');
+                resolve(base64String);
+            });
+        });
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSubmitting(true);
         setError(null);
 
+        // 1. Insert into Supabase
         const { error: insertError } = await supabase
             .from('pending_customers')
             .insert(formData);
@@ -87,10 +177,37 @@ export function NewCustomer() {
         if (insertError) {
             setError(insertError.message);
             setSubmitting(false);
-        } else {
-            // Redirect back to customers list
-            navigate('/customers');
+            return;
         }
+
+        // 2. Generate PDF and CSV
+        try {
+            const pdfBase64 = await generatePDFBase64();
+            const csvBase64 = generateCSV();
+
+            // 3. Send to our API to email
+            const emailRes = await fetch('/api/send-new-customer', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    customerName: formData.name,
+                    pdfBase64,
+                    csvBase64,
+                    recipientEmail: 'bryan@zaksfoods.ca'
+                })
+            });
+
+            const emailResult = await emailRes.json();
+            if (!emailRes.ok) {
+                console.error("Failed to send email:", emailResult.error);
+                // We still redirect because it saved to DB, but maybe show a toast in future
+            }
+        } catch (err) {
+            console.error("Error generating files:", err);
+        }
+
+        // Redirect back to customers list
+        navigate('/customers');
     };
 
     if (loading) {
