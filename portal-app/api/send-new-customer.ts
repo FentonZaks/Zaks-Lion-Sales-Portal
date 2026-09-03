@@ -24,7 +24,7 @@ export default async function handler(req: any, res: any) {
     const resend = new Resend(process.env.RESEND_API_KEY);
 
     const { data, error } = await resend.emails.send({
-      from: 'Zaks Sales Portal <onboarding@resend.dev>', // Resend testing domain
+      from: 'Zaks Sales Portal <portal@zaksfoods.ca>',
       to: recipientEmail || 'bryan@zaksfoods.ca',
       subject: `New Customer Submitted: ${customerName}`,
       html: `<p>A new customer (<strong>${customerName}</strong>) has been submitted via the Sales Portal.</p>
