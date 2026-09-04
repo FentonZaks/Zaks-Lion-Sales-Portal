@@ -26,6 +26,8 @@ export function NewCustomer() {
         ap_phone: ''
     });
 
+    const [currentUser, setCurrentUser] = useState<{ id: string, name: string, email: string } | null>(null);
+
     // Dropdown options fetched from existing customers
     const [options, setOptions] = useState({
         banners: [] as string[],
@@ -39,8 +41,19 @@ export function NewCustomer() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        async function fetchOptions() {
+        async function fetchInitialData() {
             setLoading(true);
+            
+            // Fetch Current User
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { data: profile } = await supabase.from('user_profiles').select('first_name, last_name').eq('id', user.id).single();
+                setCurrentUser({
+                    id: user.id,
+                    name: profile ? `${profile.first_name} ${profile.last_name}` : 'Unknown',
+                    email: user.email || 'Unknown'
+                });
+            }
             
             // We fetch the distinct values from the customers table
             // Because PostgREST doesn't support SELECT DISTINCT directly without an RPC, 
@@ -67,7 +80,7 @@ export function NewCustomer() {
             setLoading(false);
         }
 
-        fetchOptions();
+        fetchInitialData();
     }, []);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -78,6 +91,7 @@ export function NewCustomer() {
     const generateCSV = () => {
         const headers = ["Field", "Value"];
         const rows = [
+            ["Submitted By", currentUser ? `${currentUser.name} (${currentUser.email})` : 'Unknown'],
             ["Customer Name", formData.name],
             ["Legal Name", formData.legal_name],
             ["Shipping Address", formData.shipping_address],
@@ -125,6 +139,7 @@ export function NewCustomer() {
                     y += 8;
                 };
 
+                addLine("Submitted By", currentUser ? `${currentUser.name} (${currentUser.email})` : 'Unknown');
                 addLine("Customer Name", formData.name);
                 addLine("Legal Name", formData.legal_name);
                 addLine("Banner", formData.banner);
@@ -170,9 +185,10 @@ export function NewCustomer() {
         setError(null);
 
         // 1. Insert into Supabase
+        const insertData = { ...formData, submitted_by: currentUser?.id };
         const { error: insertError } = await supabase
             .from('pending_customers')
-            .insert(formData);
+            .insert(insertData);
 
         if (insertError) {
             setError(insertError.message);
