@@ -54,7 +54,7 @@ export function FollowUpForm({ customerId, onFollowUpCreated }: { customerId: st
             assigned_to: assignedTo,
             title: title,
             description: notes,
-            due_date: new Date(dueDate).toISOString(),
+            due_date: new Date(dueDate + 'T12:00:00').toISOString(),
             status: 'PENDING'
         });
 
