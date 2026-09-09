@@ -9,6 +9,8 @@ interface Product {
     name: string;
     description: string;
     base_price: number;
+    price_canco: number | null;
+    price_distributor: number | null;
     primary_category: string | null;
     secondary_category: string | null;
     estimated_inventory: number;
@@ -24,6 +26,7 @@ interface Product {
 interface CartItem {
     product: Product;
     quantity: number;
+    applicablePrice: number;
     overridePrice?: number;
     comment?: string;
     showOverride: boolean;
@@ -45,6 +48,7 @@ export function OrderBuilder() {
     const [cart, setCart] = useState<CartItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [userId, setUserId] = useState<string | null>(null);
+    const [step, setStep] = useState<'build' | 'review'>('build');
 
     // Accordion state
     const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
@@ -65,7 +69,7 @@ export function OrderBuilder() {
     async function fetchCustomerData() {
         setLoading(true);
         // 1. Fetch Customer
-        const { data: custData } = await supabase.from('customers').select('id, name, net_suite_id').eq('id', customerId).single();
+        const { data: custData } = await supabase.from('customers').select('id, name, net_suite_id, price_level').eq('id', customerId).single();
         setCustomer(custData);
 
         // 2. Fetch Customer Default Shipping Location
@@ -175,6 +179,13 @@ export function OrderBuilder() {
         return product.estimated_inventory || 0;
     };
 
+    const getApplicablePrice = (product: Product) => {
+        const level = customer?.price_level;
+        if (level === 'Canco Price' && product.price_canco != null) return product.price_canco;
+        if (level === 'Distributor' && product.price_distributor != null) return product.price_distributor;
+        return product.base_price;
+    };
+
     const addToCart = (product: Product) => {
         const localQty = getInventoryForSelectedWarehouse(product);
         const totalQty = getTotalInventory(product);
@@ -194,6 +205,7 @@ export function OrderBuilder() {
             setCart([...cart, { 
                 product, 
                 quantity: 1, 
+                applicablePrice: getApplicablePrice(product),
                 showOverride: false,
                 fulfillment_location: fallbackLocation,
                 is_split_shipment: isSplit
@@ -215,7 +227,7 @@ export function OrderBuilder() {
                 if (item.showOverride) {
                     return { ...item, showOverride: false, overridePrice: undefined, comment: undefined };
                 } else {
-                    return { ...item, showOverride: true, overridePrice: item.product.base_price, comment: '' };
+                    return { ...item, showOverride: true, overridePrice: item.applicablePrice, comment: '' };
                 }
             }
             return item;
@@ -226,7 +238,91 @@ export function OrderBuilder() {
         setCart(cart.map(item => item.product.id === productId ? { ...item, overridePrice: price, comment } : item));
     };
 
-    const subtotal = cart.reduce((sum, item) => sum + (item.overridePrice ?? item.product.base_price) * item.quantity, 0);
+    const subtotal = cart.reduce((sum, item) => sum + (item.overridePrice ?? item.applicablePrice) * item.quantity, 0);
+
+    const generateCSV = () => {
+        // Kit Option A: Just send the parent SKU. Leave pricing blank so NetSuite calculates it.
+        const headers = ["Customer ID", "SKU", "Quantity", "Rate", "Comment", "Location"];
+        const rows = cart.map(item => {
+            // If they didn't override, we send empty string for Rate so NetSuite calculates it.
+            const rate = item.showOverride ? item.overridePrice : "";
+            const comment = item.showOverride ? item.comment : "";
+            return [
+                customerId,
+                item.product.sku,
+                item.quantity,
+                rate,
+                comment,
+                item.fulfillment_location
+            ];
+        });
+        
+        const csvContent = [
+            headers.join(","),
+            ...rows.map(row => row.map(val => '"' + (val || '').toString().replace(/"/g, '""') + '"').join(","))
+        ].join("\n");
+        
+        return "data:text/csv;base64," + btoa(csvContent);
+    };
+
+    const generatePDFBase64 = (): Promise<string> => {
+        return new Promise((resolve) => {
+            import('jspdf').then(({ jsPDF }) => {
+                const doc = new jsPDF();
+                
+                doc.setFontSize(18);
+                doc.text("Draft Order Summary", 20, 20);
+                
+                doc.setFontSize(12);
+                doc.text(`Customer: ${customer?.name}`, 20, 30);
+                doc.text(`NetSuite ID: ${customer?.net_suite_id}`, 20, 38);
+                if (customerLocation?.province) {
+                    doc.text(`Shipping To: ${customerLocation.province}, ${customerLocation.country}`, 20, 46);
+                }
+                
+                let y = 60;
+                doc.setFont("helvetica", "bold");
+                doc.text("SKU", 20, y);
+                doc.text("Qty", 80, y);
+                doc.text("Est. Price", 110, y);
+                doc.text("Total", 150, y);
+                doc.setFont("helvetica", "normal");
+                y += 10;
+                
+                cart.forEach(item => {
+                    const price = item.overridePrice ?? item.applicablePrice;
+                    const lineTotal = price * item.quantity;
+                    
+                    doc.text(item.product.sku, 20, y);
+                    doc.text(item.quantity.toString(), 80, y);
+                    doc.text(`${price.toFixed(2)}`, 110, y);
+                    doc.text(`${lineTotal.toFixed(2)}`, 150, y);
+                    y += 8;
+                    
+                    if (item.showOverride && item.comment) {
+                        doc.setFont("helvetica", "italic");
+                        doc.setFontSize(10);
+                        doc.text(`Override: ${item.comment}`, 25, y);
+                        doc.setFont("helvetica", "normal");
+                        doc.setFontSize(12);
+                        y += 8;
+                    }
+                    
+                    if (y > 270) {
+                        doc.addPage();
+                        y = 20;
+                    }
+                });
+                
+                y += 10;
+                doc.setFont("helvetica", "bold");
+                doc.text(`Estimated Subtotal: ${subtotal.toFixed(2)}`, 110, y);
+                
+                const base64String = doc.output('datauristring');
+                resolve(base64String);
+            });
+        });
+    };
 
     const handleSubmit = async () => {
         if (!userId || !customerId || cart.length === 0) return;
@@ -239,6 +335,27 @@ export function OrderBuilder() {
 
         setLoading(true);
         try {
+            // 1. Generate Files
+            const pdfBase64 = await generatePDFBase64();
+            const csvBase64 = generateCSV();
+
+            // 2. Email it via our API
+            const emailRes = await fetch('/api/send-draft-order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    customerName: customer?.name,
+                    pdfBase64,
+                    csvBase64,
+                    recipientEmail: 'bryan@zaksfoods.ca'
+                })
+            });
+
+            if (!emailRes.ok) {
+                console.warn("Email failed to send, but proceeding to save draft...");
+            }
+
+            // 3. Save to Supabase (unchanged)
             const { data: order, error: orderError } = await supabase.from('orders').insert({
                 customer_id: customerId,
                 user_id: userId,
@@ -252,21 +369,20 @@ export function OrderBuilder() {
                 order_id: order.id,
                 product_id: item.product.id,
                 quantity: item.quantity,
-                unit_price: item.overridePrice ?? item.product.base_price,
+                unit_price: item.overridePrice ?? item.applicablePrice,
                 is_price_overridden: item.showOverride,
                 override_comment: item.showOverride ? item.comment : null
-                // Note: If you add fulfillment_location to order_lines schema, include it here.
             }));
 
             const { error: lineError } = await supabase.from('order_lines').insert(lines);
             if (lineError) throw lineError;
 
-            alert('Draft Order successfully saved!');
+            alert('Draft Order successfully submitted and emailed!');
             navigate(`/customers/${customerId}`);
             
         } catch (error) {
             console.error('Submission failed', error);
-            alert('Failed to save the draft order.');
+            alert('Failed to submit the draft order.');
         }
         setLoading(false);
     };
@@ -280,6 +396,75 @@ export function OrderBuilder() {
     }, {} as Record<string, Product[]>);
 
     if (loading && allProducts.length === 0) return <div className="card">Loading...</div>;
+
+
+    if (step === 'review') {
+        return (
+            <div className="app-container" style={{ maxWidth: '800px' }}>
+                <h1 style={{ fontSize: '2.5rem', fontWeight: '800', margin: 0, color: 'var(--primary-color)', letterSpacing: '-0.025em' }}>
+                    Review Draft Order
+                </h1>
+                <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem', fontSize: '1.1rem' }}>
+                    {customer?.name} ({customer?.net_suite_id})
+                </p>
+
+                <div className="card" style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', paddingBottom: '1.5rem', borderBottom: '1px solid var(--border-color)' }}>
+                        <div>
+                            <strong style={{ display: 'block', color: 'var(--text-secondary)' }}>Shipping Location</strong>
+                            <div>{customerLocation?.province}, {customerLocation?.country}</div>
+                        </div>
+                        <div>
+                            <strong style={{ display: 'block', color: 'var(--text-secondary)' }}>Total Items</strong>
+                            <div>{cart.reduce((sum, i) => sum + i.quantity, 0)} Items</div>
+                        </div>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        {cart.map(item => (
+                            <div key={item.product.id} style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '1rem', borderBottom: '1px dashed var(--border-color)' }}>
+                                <div>
+                                    <strong style={{ display: 'block' }}>{item.product.sku}</strong>
+                                    <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{item.product.name}</span>
+                                    {item.showOverride && (
+                                        <div style={{ fontSize: '0.8rem', color: '#d97706', marginTop: '0.25rem' }}>
+                                            Price Overridden: {item.comment}
+                                        </div>
+                                    )}
+                                </div>
+                                <div style={{ textAlign: 'right' }}>
+                                    <strong style={{ display: 'block' }}>${((item.overridePrice ?? item.applicablePrice) * item.quantity).toFixed(2)}</strong>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{item.quantity} @ ${(item.overridePrice ?? item.applicablePrice).toFixed(2)}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.5rem', fontWeight: 'bold', paddingTop: '1rem' }}>
+                        <span>Estimated Subtotal</span>
+                        <span>${subtotal.toFixed(2)}</span>
+                    </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
+                    <button 
+                        onClick={() => setStep('build')} 
+                        disabled={loading}
+                        style={{ flex: 1, padding: '1rem', backgroundColor: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}
+                    >
+                        Back to Edit
+                    </button>
+                    <button 
+                        onClick={handleSubmit} 
+                        disabled={loading}
+                        style={{ flex: 2, padding: '1rem', backgroundColor: 'var(--primary-color)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700, fontSize: '1.1rem', cursor: loading ? 'not-allowed' : 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}
+                    >
+                        {loading ? 'Submitting...' : <><CheckCircle2 size={20} /> Submit Order to Head Office</>}
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="app-container" style={{ maxWidth: '1400px' }}>
@@ -365,7 +550,7 @@ export function OrderBuilder() {
                                                         <div style={{ color: 'var(--text-primary)', marginBottom: '0.5rem' }}>{prod.name}</div>
                                                         
                                                         <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                                                            <span><strong>Price:</strong> ${prod.base_price.toFixed(2)}</span>
+                                                            <span><strong>Price:</strong> ${getApplicablePrice(prod).toFixed(2)}</span>
                                                             {prod.inner_carton_qty && <span><strong>Inner:</strong> {prod.inner_carton_qty}</span>}
                                                             {prod.master_case_qty && <span><strong>Master:</strong> {prod.master_case_qty}</span>}
                                                         </div>
@@ -438,8 +623,8 @@ export function OrderBuilder() {
                                                     )}
                                                 </div>
                                                 <div style={{ textAlign: 'right' }}>
-                                                    <div style={{ fontWeight: 700 }}>${((item.overridePrice ?? item.product.base_price) * item.quantity).toFixed(2)}</div>
-                                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{item.quantity} @ ${(item.overridePrice ?? item.product.base_price).toFixed(2)}</div>
+                                                    <div style={{ fontWeight: 700 }}>${((item.overridePrice ?? item.applicablePrice) * item.quantity).toFixed(2)}</div>
+                                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{item.quantity} @ ${(item.overridePrice ?? item.applicablePrice).toFixed(2)}</div>
                                                 </div>
                                             </div>
                                             
@@ -480,11 +665,18 @@ export function OrderBuilder() {
                             </div>
                             
                             <button 
-                                onClick={handleSubmit} 
-                                disabled={loading || cart.length === 0}
+                                onClick={() => {
+                                    const invalidItem = cart.find(item => item.showOverride && (!item.comment || item.comment.trim() === ''));
+                                    if (invalidItem) {
+                                        alert('A comment is strictly required for all price overrides.');
+                                        return;
+                                    }
+                                    setStep('review');
+                                }} 
+                                disabled={cart.length === 0}
                                 style={{ width: '100%', padding: '1rem', backgroundColor: 'var(--primary-color)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700, fontSize: '1.1rem', cursor: cart.length > 0 ? 'pointer' : 'not-allowed', opacity: cart.length > 0 ? 1 : 0.5, transition: 'all 0.2s', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}
                             >
-                                {loading ? 'Saving Draft...' : <><CheckCircle2 size={20} /> Save Draft Order</>}
+                                <CheckCircle2 size={20} /> Review Order
                             </button>
                             
                             <button 
