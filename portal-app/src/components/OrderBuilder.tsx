@@ -182,10 +182,25 @@ export function OrderBuilder() {
 
     const getApplicablePrice = (product: Product) => {
         const level = customer?.price_level;
-        if (level === 'Store' && product.price_store != null) return product.price_store;
-        if (level === 'Canco Price' && product.price_canco != null) return product.price_canco;
-        if (level === 'Distributor' && product.price_distributor != null) return product.price_distributor;
-        return product.base_price; // Defaults to MSRP / Base Price
+        let price = product.base_price;
+        if (level === 'Store' && product.price_store != null) price = product.price_store;
+        else if (level === 'Canco Price' && product.price_canco != null) price = product.price_canco;
+        else if (level === 'Distributor' && product.price_distributor != null) price = product.price_distributor;
+        
+        // If the item has no direct price but is a Kit, estimate price by summing components
+        if ((price === 0 || price == null) && product.kit_components && product.kit_components.length > 0) {
+            let kitPrice = 0;
+            for (const comp of product.kit_components) {
+                const compProduct = allProducts.find(p => p.sku === comp.sku);
+                if (compProduct) {
+                    // Recursive call to get component price
+                    kitPrice += getApplicablePrice(compProduct) * comp.quantity;
+                }
+            }
+            return kitPrice;
+        }
+
+        return price;
     };
 
     const addToCart = (product: Product) => {
@@ -433,6 +448,14 @@ export function OrderBuilder() {
                                             Price Overridden: {item.comment}
                                         </div>
                                     )}
+                                    {item.product.kit_components && item.product.kit_components.length > 0 && (
+                                        <div style={{ marginTop: '0.5rem', paddingLeft: '0.5rem', borderLeft: '2px solid var(--border-color)', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                                            {item.product.kit_components.map(c => {
+                                                const cp = allProducts.find(p => p.sku === c.sku);
+                                                return <div key={c.sku}>↳ {c.quantity * item.quantity}x {c.sku} ({cp?.name || 'Unknown'})</div>
+                                            })}
+                                        </div>
+                                    )}
                                 </div>
                                 <div style={{ textAlign: 'right' }}>
                                     <strong style={{ display: 'block' }}>${((item.overridePrice ?? item.applicablePrice) * item.quantity).toFixed(2)}</strong>
@@ -621,6 +644,14 @@ export function OrderBuilder() {
                                                     {item.is_split_shipment && (
                                                         <div style={{ fontSize: '0.7rem', color: '#b45309', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                                                             <Package size={10} /> Ships from: {item.fulfillment_location}
+                                                        </div>
+                                                    )}
+                                                    {item.product.kit_components && item.product.kit_components.length > 0 && (
+                                                        <div style={{ marginTop: '0.5rem', paddingLeft: '0.5rem', borderLeft: '2px solid var(--border-color)', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                                                            {item.product.kit_components.map(c => {
+                                                                const cp = allProducts.find(p => p.sku === c.sku);
+                                                                return <div key={c.sku} title={cp?.name || 'Unknown'}>↳ {c.quantity * item.quantity}x {c.sku}</div>
+                                                            })}
                                                         </div>
                                                     )}
                                                 </div>
