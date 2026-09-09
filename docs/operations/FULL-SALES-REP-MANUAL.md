@@ -23,10 +23,8 @@ If you forget your password or need to set it for the first time:
 When you log in, you will land on your **Sales Dashboard**. This is your personalized command center.
 
 **What you will see:**
-* **Key Metrics:** At-a-glance cards showing your total customers, Year-to-Date (YTD) Revenue, Month-to-Date (MTD) Revenue, and Total Open Accounts Receivable (Balances).
-* **Revenue Charts:** Visual graphs breaking down your monthly performance so you can track trends over the year.
-* **Category Distribution:** See exactly which product categories are driving your sales (e.g., Grocery, Frozen, Snacks).
-* **Pending Follow-ups:** A quick-access list of all your open tasks and reminders. Clicking on any follow-up will take you directly to that customer to complete the task.
+* **Customer List:** Your primary workspace. A comprehensive, searchable table of all customers currently assigned to you in NetSuite. You can sort this list by MTD Revenue, YTD Revenue, Account Balance, and Last Activity Date.
+* **Pending Follow-ups:** Below your customer list, you will see a quick-access feed of all your open tasks, calls, and reminders. Clicking on any follow-up will take you directly to that customer to complete the task.
 
 ---
 
