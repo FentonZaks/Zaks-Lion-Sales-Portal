@@ -11,6 +11,7 @@ export function NewCustomer() {
         legal_name: '',
         shipping_address: '',
         shipping_city: '',
+        shipping_province: '',
         shipping_postal_code: '',
         shipping_country: '',
         banner: '',
@@ -96,6 +97,7 @@ export function NewCustomer() {
             ["Legal Name", formData.legal_name],
             ["Shipping Address", formData.shipping_address],
             ["City", formData.shipping_city],
+            ["Province", formData.shipping_province],
             ["Postal Code", formData.shipping_postal_code],
             ["Country", formData.shipping_country],
             ["Banner", formData.banner],
@@ -153,6 +155,7 @@ export function NewCustomer() {
                 y += 8;
                 addLine("Address", formData.shipping_address);
                 addLine("City", formData.shipping_city);
+                addLine("Province", formData.shipping_province);
                 addLine("Postal Code", formData.shipping_postal_code);
                 addLine("Country", formData.shipping_country);
                 
@@ -271,6 +274,10 @@ export function NewCustomer() {
                         <div>
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>City</label>
                             <input name="shipping_city" value={formData.shipping_city} onChange={handleChange} className="form-input" style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: '4px' }} />
+                        </div>
+                        <div>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Province / State</label>
+                            <input name="shipping_province" value={formData.shipping_province} onChange={handleChange} className="form-input" style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: '4px' }} />
                         </div>
                         <div>
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Postal Code</label>
