@@ -9,6 +9,7 @@ interface Product {
     name: string;
     description: string;
     base_price: number;
+    price_store: number | null;
     price_canco: number | null;
     price_distributor: number | null;
     primary_category: string | null;
@@ -181,9 +182,10 @@ export function OrderBuilder() {
 
     const getApplicablePrice = (product: Product) => {
         const level = customer?.price_level;
+        if (level === 'Store' && product.price_store != null) return product.price_store;
         if (level === 'Canco Price' && product.price_canco != null) return product.price_canco;
         if (level === 'Distributor' && product.price_distributor != null) return product.price_distributor;
-        return product.base_price;
+        return product.base_price; // Defaults to MSRP / Base Price
     };
 
     const addToCart = (product: Product) => {
