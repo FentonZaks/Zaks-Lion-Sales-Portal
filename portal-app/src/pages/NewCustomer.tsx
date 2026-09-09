@@ -11,9 +11,9 @@ export function NewCustomer() {
         legal_name: '',
         shipping_address: '',
         shipping_city: '',
-        shipping_province: '',
+        shipping_province: 'AB',
         shipping_postal_code: '',
-        shipping_country: '',
+        shipping_country: 'Canada',
         banner: '',
         channel: '',
         price_level: '',
@@ -268,7 +268,21 @@ export function NewCustomer() {
                         </div>
                         <div>
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Province / State</label>
-                            <input name="shipping_province" value={formData.shipping_province} onChange={handleChange} className="form-input" style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: '4px' }} />
+                            <select name="shipping_province" value={formData.shipping_province} onChange={handleChange} className="form-input" style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: '4px' }}>
+                                <option value="AB">Alberta (AB)</option>
+                                <option value="BC">British Columbia (BC)</option>
+                                <option value="MB">Manitoba (MB)</option>
+                                <option value="NB">New Brunswick (NB)</option>
+                                <option value="NL">Newfoundland and Labrador (NL)</option>
+                                <option value="NT">Northwest Territories (NT)</option>
+                                <option value="NS">Nova Scotia (NS)</option>
+                                <option value="NU">Nunavut (NU)</option>
+                                <option value="ON">Ontario (ON)</option>
+                                <option value="PE">Prince Edward Island (PE)</option>
+                                <option value="QC">Quebec (QC)</option>
+                                <option value="SK">Saskatchewan (SK)</option>
+                                <option value="YT">Yukon (YT)</option>
+                            </select>
                         </div>
                         <div>
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Postal Code</label>
@@ -276,7 +290,7 @@ export function NewCustomer() {
                         </div>
                         <div>
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Country</label>
-                            <input name="shipping_country" value={formData.shipping_country} onChange={handleChange} className="form-input" style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: '4px' }} />
+                            <input name="shipping_country" value={formData.shipping_country} readOnly className="form-input" style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: '4px', backgroundColor: 'var(--bg-color)', color: 'var(--text-secondary)' }} />
                         </div>
                     </div>
                 </section>
