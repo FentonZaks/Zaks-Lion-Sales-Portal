@@ -45,11 +45,26 @@ function(serverWidget, record, file, log, redirect) {
                     var line = lines[i].trim();
                     if (!line) continue;
                     
-                    // Basic split by first comma, or regex to handle quotes
-                    // The portal exports as: "Field","Value"
-                    var matches = line.match(/"(.*?)"\s*,\s*"(.*?)"/);
-                    if (matches && matches.length >= 3) {
-                        parsedData[matches[1]] = matches[2];
+                    // Support both quoted ("Field","Value") and unquoted (Field,Value) from Excel
+                    var key = '';
+                    var val = '';
+                    
+                    if (line.indexOf('"') !== -1) {
+                        var matches = line.match(/"(.*?)"\s*,\s*"(.*?)"/);
+                        if (matches && matches.length >= 3) {
+                            key = matches[1];
+                            val = matches[2];
+                        }
+                    } else {
+                        var parts = line.split(',');
+                        if (parts.length >= 2) {
+                            key = parts[0].trim();
+                            val = parts.slice(1).join(',').trim(); // join rest in case of extra commas
+                        }
+                    }
+                    
+                    if (key) {
+                        parsedData[key] = val;
                     }
                 }
 
@@ -62,10 +77,10 @@ function(serverWidget, record, file, log, redirect) {
                 });
 
                 // Standard Fields
-                custRec.setValue({ fieldId: 'companyname', value: parsedData['Customer Name'] });
+                custRec.setValue({ fieldId: 'companyname', value: parsedData['Customer Name'] || 'Unknown Company' });
                 custRec.setValue({ fieldId: 'subsidiary', value: 2 }); // Zaks Foods ULC
-                custRec.setValue({ fieldId: 'email', value: parsedData['Primary Email'] });
-                custRec.setValue({ fieldId: 'phone', value: parsedData['Primary Phone'] });
+                if (parsedData['Primary Email']) custRec.setValue({ fieldId: 'email', value: parsedData['Primary Email'] });
+                if (parsedData['Primary Phone']) custRec.setValue({ fieldId: 'phone', value: parsedData['Primary Phone'] });
                 
                 // Append Legal Name to Comments
                 if (parsedData['Legal Name']) {
@@ -73,8 +88,8 @@ function(serverWidget, record, file, log, redirect) {
                 }
 
                 // Custom Fields
-                if (parsedData['Banner']) custRec.setValue({ fieldId: 'custentity2', value: parsedData['Banner'] });
-                if (parsedData['Channel']) custRec.setValue({ fieldId: 'custentity5', value: parsedData['Channel'] });
+                if (parsedData['Banner']) custRec.setValue({ fieldId: 'custentity2', value: parsedData['Banner'].trim() });
+                if (parsedData['Channel']) custRec.setValue({ fieldId: 'custentity5', value: parsedData['Channel'].trim() });
                 if (parsedData['AP Email']) custRec.setValue({ fieldId: 'custentity_atlas_customer_invoice_email', value: parsedData['AP Email'] });
                 
                 // Address Book
@@ -89,10 +104,10 @@ function(serverWidget, record, file, log, redirect) {
                     });
                     
                     addressSubrecord.setValue({ fieldId: 'country', value: 'CA' }); // Defaulting to Canada
-                    addressSubrecord.setValue({ fieldId: 'addr1', value: parsedData['Shipping Address'] });
-                    addressSubrecord.setValue({ fieldId: 'city', value: parsedData['City'] });
-                    addressSubrecord.setValue({ fieldId: 'state', value: parsedData['Province'] || '' });
-                    addressSubrecord.setValue({ fieldId: 'zip', value: parsedData['Postal Code'] });
+                    if (parsedData['Shipping Address']) addressSubrecord.setValue({ fieldId: 'addr1', value: parsedData['Shipping Address'] });
+                    if (parsedData['City']) addressSubrecord.setValue({ fieldId: 'city', value: parsedData['City'] });
+                    if (parsedData['Province']) addressSubrecord.setValue({ fieldId: 'state', value: parsedData['Province'] });
+                    if (parsedData['Postal Code']) addressSubrecord.setValue({ fieldId: 'zip', value: parsedData['Postal Code'] });
                     
                     custRec.commitLine({ sublistId: 'addressbook' });
                 }
