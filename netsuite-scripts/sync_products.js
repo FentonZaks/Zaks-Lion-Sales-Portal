@@ -73,7 +73,10 @@ define(['N/search', 'N/https', 'N/log', 'N/runtime'],
                                 master_case_qty: parseInt(result.getValue('custitemzaks_master_case_count')) || null,
                                 estimated_inventory: 0,
                                 inventory_by_location: {},
-                                kit_components: []
+                                kit_components: [],
+                                price_store: null,
+                                price_canco: null,
+                                price_distributor: null
                             };
                         }
 
@@ -125,6 +128,37 @@ define(['N/search', 'N/https', 'N/log', 'N/runtime'],
                                     quantity: compQty
                                 });
                             }
+                        }
+                    });
+                });
+
+                // 4. Tertiary Search to collect Pricing data for Specific Price Levels
+                var pricingSearch = search.create({
+                    type: search.Type.ITEM,
+                    filters: [
+                        ['type', 'anyof', 'InvtPart', 'Assembly', 'Kit', 'Group']
+                    ],
+                    columns: [
+                        'internalid',
+                        search.createColumn({ name: 'pricelevel', join: 'pricing' }),
+                        search.createColumn({ name: 'unitprice', join: 'pricing' })
+                    ]
+                });
+
+                var pricingPaged = pricingSearch.runPaged({ pageSize: 1000 });
+                pricingPaged.pageRanges.forEach(function(pageRange) {
+                    var page = pricingPaged.fetch({ index: pageRange.index });
+                    
+                    page.data.forEach(function(result) {
+                        var pId = result.getValue('internalid');
+                        var levelName = result.getText({ name: 'pricelevel', join: 'pricing' });
+                        var priceStr = result.getValue({ name: 'unitprice', join: 'pricing' });
+                        
+                        if (productsMap[pId] && levelName && priceStr !== null && priceStr !== '') {
+                            var price = parseFloat(priceStr);
+                            if (levelName === 'Store') productsMap[pId].price_store = price;
+                            else if (levelName === 'Canco Price') productsMap[pId].price_canco = price;
+                            else if (levelName === 'Distributor') productsMap[pId].price_distributor = price;
                         }
                     });
                 });
