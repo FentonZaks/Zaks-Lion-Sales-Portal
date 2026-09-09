@@ -296,31 +296,31 @@ export function NewCustomer() {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                         <div>
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Banner</label>
-                            <select name="banner" value={formData.banner} onChange={handleChange} className="form-input" style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: '4px' }}>
-                                <option value="">Select a Banner...</option>
-                                {options.banners.map(b => <option key={b} value={b}>{b}</option>)}
-                            </select>
+                            <input list="banner-list" name="banner" value={formData.banner} onChange={handleChange} placeholder="Select or type..." className="form-input" style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: '4px' }} />
+                            <datalist id="banner-list">
+                                {options.banners.map(b => <option key={b} value={b} />)}
+                            </datalist>
                         </div>
                         <div>
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Channel</label>
-                            <select name="channel" value={formData.channel} onChange={handleChange} className="form-input" style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: '4px' }}>
-                                <option value="">Select a Channel...</option>
-                                {options.channels.map(c => <option key={c} value={c}>{c}</option>)}
-                            </select>
+                            <input list="channel-list" name="channel" value={formData.channel} onChange={handleChange} placeholder="Select or type..." className="form-input" style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: '4px' }} />
+                            <datalist id="channel-list">
+                                {options.channels.map(c => <option key={c} value={c} />)}
+                            </datalist>
                         </div>
                         <div>
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Price Level</label>
-                            <select name="price_level" value={formData.price_level} onChange={handleChange} className="form-input" style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: '4px' }}>
-                                <option value="">Select a Price Level...</option>
-                                {options.priceLevels.map(p => <option key={p} value={p}>{p}</option>)}
-                            </select>
+                            <input list="price-level-list" name="price_level" value={formData.price_level} onChange={handleChange} placeholder="Select or type..." className="form-input" style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: '4px' }} />
+                            <datalist id="price-level-list">
+                                {options.priceLevels.map(p => <option key={p} value={p} />)}
+                            </datalist>
                         </div>
                         <div>
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Sales Rep</label>
-                            <select name="sales_rep" value={formData.sales_rep} onChange={handleChange} className="form-input" style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: '4px' }}>
-                                <option value="">Select a Sales Rep...</option>
-                                {options.salesReps.map(r => <option key={r} value={r}>{r}</option>)}
-                            </select>
+                            <input list="sales-rep-list" name="sales_rep" value={formData.sales_rep} onChange={handleChange} placeholder="Select or type..." className="form-input" style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: '4px' }} />
+                            <datalist id="sales-rep-list">
+                                {options.salesReps.map(r => <option key={r} value={r} />)}
+                            </datalist>
                         </div>
                     </div>
                 </section>
