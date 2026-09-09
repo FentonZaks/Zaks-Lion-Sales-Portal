@@ -16,7 +16,7 @@ export function NewCustomer() {
         shipping_country: 'Canada',
         banner: '',
         channel: '',
-        price_level: '',
+        price_level: 'Store',
         sales_rep: '',
         primary_first_name: '',
         primary_last_name: '',
@@ -316,8 +316,9 @@ export function NewCustomer() {
                         <div>
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Price Level</label>
                             <select name="price_level" value={formData.price_level} onChange={handleChange} className="form-input" style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: '4px' }}>
-                                <option value="">Select a Price Level...</option>
-                                {options.priceLevels.map(p => <option key={p} value={p}>{p}</option>)}
+                                <option value="Store">Store</option>
+                                <option value="Canco Price">Canco Price</option>
+                                <option value="Distributor">Distributor</option>
                             </select>
                         </div>
                         <div>
