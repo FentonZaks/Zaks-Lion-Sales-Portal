@@ -106,7 +106,7 @@ function(serverWidget, record, file, log, redirect) {
                     addressSubrecord.setValue({ fieldId: 'country', value: 'CA' }); // Defaulting to Canada
                     if (parsedData['Shipping Address']) addressSubrecord.setValue({ fieldId: 'addr1', value: parsedData['Shipping Address'] });
                     if (parsedData['City']) addressSubrecord.setValue({ fieldId: 'city', value: parsedData['City'] });
-                    if (parsedData['Province']) addressSubrecord.setValue({ fieldId: 'state', value: parsedData['Province'] });
+                    if (parsedData['Province']) addressSubrecord.setValue({ fieldId: 'state', value: normalizeProvince(parsedData['Province']) });
                     if (parsedData['Postal Code']) addressSubrecord.setValue({ fieldId: 'zip', value: parsedData['Postal Code'] });
                     
                     custRec.commitLine({ sublistId: 'addressbook' });
@@ -144,6 +144,30 @@ function(serverWidget, record, file, log, redirect) {
         } catch (e) {
             log.error('Error creating contact', e);
         }
+    }
+
+    function normalizeProvince(prov) {
+        if (!prov) return '';
+        var p = prov.trim().toUpperCase();
+        var map = {
+            'ALBERTA': 'AB',
+            'BRITISH COLUMBIA': 'BC',
+            'MANITOBA': 'MB',
+            'NEW BRUNSWICK': 'NB',
+            'NEWFOUNDLAND AND LABRADOR': 'NL',
+            'NEWFOUNDLAND & LABRADOR': 'NL',
+            'NEWFOUNDLAND': 'NL',
+            'NOVA SCOTIA': 'NS',
+            'ONTARIO': 'ON',
+            'PRINCE EDWARD ISLAND': 'PE',
+            'PEI': 'PE',
+            'QUEBEC': 'QC',
+            'SASKATCHEWAN': 'SK',
+            'NORTHWEST TERRITORIES': 'NT',
+            'NUNAVUT': 'NU',
+            'YUKON': 'YT'
+        };
+        return map[p] || p;
     }
 
     return {
