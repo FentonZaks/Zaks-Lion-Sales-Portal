@@ -56,26 +56,17 @@ export function NewCustomer() {
                 });
             }
             
-            // We fetch the distinct values from the customers table
-            // Because PostgREST doesn't support SELECT DISTINCT directly without an RPC, 
-            // we will just fetch them and unique them in JS.
-            const { data, error } = await supabase
-                .from('customers')
-                .select('banner, channel, price_level, salesrep');
+            // Fetch dropdown options via RPC to safely bypass RLS and get all global options
+            const { data: rpcData, error } = await supabase.rpc('get_form_dropdown_options');
                 
             if (error) {
                 console.error("Error fetching options:", error);
-            } else if (data) {
-                const uniqueBanners = Array.from(new Set(data.map(d => d.banner).filter(Boolean))).sort();
-                const uniqueChannels = Array.from(new Set(data.map(d => d.channel).filter(Boolean))).sort();
-                const uniquePriceLevels = Array.from(new Set(data.map(d => d.price_level).filter(Boolean))).sort();
-                const uniqueSalesReps = Array.from(new Set(data.map(d => d.salesrep).filter(Boolean))).sort();
-
+            } else if (rpcData) {
                 setOptions({
-                    banners: uniqueBanners,
-                    channels: uniqueChannels,
-                    priceLevels: uniquePriceLevels,
-                    salesReps: uniqueSalesReps
+                    banners: rpcData.banners || [],
+                    channels: rpcData.channels || [],
+                    priceLevels: rpcData.price_levels || [],
+                    salesReps: rpcData.sales_reps || []
                 });
             }
             setLoading(false);
