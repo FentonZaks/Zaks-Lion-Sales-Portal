@@ -117,7 +117,7 @@ function(serverWidget, record, file, log, redirect) {
 
                 // Create Contacts
                 createContact(parsedData['Primary Contact First'], parsedData['Primary Contact Last'], parsedData['Primary Email'], parsedData['Primary Phone'], customerId, 'Primary Contact');
-                createContact(parsedData['AP Name'] ? parsedData['AP Name'].split(' ')[0] : '', parsedData['AP Name'] ? parsedData['AP Name'].split(' ').slice(1).join(' ') : '', parsedData['AP Email'], parsedData['AP Phone'], customerId, 'AP Contact');
+                createContact(parsedData['AP First Name'], parsedData['AP Last Name'], parsedData['AP Email'], parsedData['AP Phone'], customerId, 'AP Contact');
 
                 // Success Response
                 context.response.write('<h2>Success!</h2><p>Customer successfully created. <a href="/app/common/entity/custjob.nl?id=' + customerId + '">Click here to view Customer Record</a></p><br/><a href="javascript:history.back()">Go Back</a>');

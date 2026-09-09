@@ -22,7 +22,8 @@ export function NewCustomer() {
         primary_last_name: '',
         primary_email: '',
         primary_phone: '',
-        ap_name: '',
+        ap_first_name: '',
+        ap_last_name: '',
         ap_email: '',
         ap_phone: ''
     });
@@ -99,7 +100,8 @@ export function NewCustomer() {
             ["Primary Contact Last", formData.primary_last_name],
             ["Primary Email", formData.primary_email],
             ["Primary Phone", formData.primary_phone],
-            ["AP Name", formData.ap_name],
+            ["AP First Name", formData.ap_first_name],
+            ["AP Last Name", formData.ap_last_name],
             ["AP Email", formData.ap_email],
             ["AP Phone", formData.ap_phone]
         ];
@@ -162,7 +164,7 @@ export function NewCustomer() {
                 doc.setFont("helvetica", "bold");
                 doc.text("Accounts Payable", 20, y);
                 y += 8;
-                addLine("Name", formData.ap_name);
+                addLine("Name", `${formData.ap_first_name} ${formData.ap_last_name}`);
                 addLine("Email", formData.ap_email);
                 addLine("Phone", formData.ap_phone);
                 
@@ -361,8 +363,12 @@ export function NewCustomer() {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', borderLeft: '1px solid var(--border-color)', paddingLeft: '2rem' }}>
                             <h4 style={{ margin: 0, color: 'var(--text-secondary)' }}>Accounts Payable</h4>
                             <div>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Name</label>
-                                <input name="ap_name" value={formData.ap_name} onChange={handleChange} className="form-input" style={{ width: '100%', padding: '0.5rem', border: '1px solid var(--border-color)', borderRadius: '4px' }} />
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>First Name</label>
+                                <input name="ap_first_name" value={formData.ap_first_name} onChange={handleChange} className="form-input" style={{ width: '100%', padding: '0.5rem', border: '1px solid var(--border-color)', borderRadius: '4px' }} />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Last Name</label>
+                                <input name="ap_last_name" value={formData.ap_last_name} onChange={handleChange} className="form-input" style={{ width: '100%', padding: '0.5rem', border: '1px solid var(--border-color)', borderRadius: '4px' }} />
                             </div>
                             <div>
                                 <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Email</label>
