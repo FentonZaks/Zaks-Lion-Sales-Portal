@@ -53,14 +53,9 @@ export function CustomerList() {
     }, [search, selectedRep, bannerFilter, sortColumn, sortDirection, limit]);
 
     async function fetchBanners() {
-        const { data: banners } = await supabase
-            .from('customers')
-            .select('banner')
-            .not('banner', 'is', null);
-        
-        if (banners) {
-            const uniqueBanners = Array.from(new Set(banners.map(b => b.banner as string)));
-            setAvailableBanners(uniqueBanners.sort());
+        const { data: rpcData } = await supabase.rpc('get_form_dropdown_options');
+        if (rpcData && rpcData.banners) {
+            setAvailableBanners(rpcData.banners);
         }
     }
 
@@ -78,15 +73,10 @@ export function CustomerList() {
         setIsAdmin(!!hasAdminRole);
 
         if (hasAdminRole) {
-            // Fetch unique reps from customers for the dropdown
-            const { data: reps } = await supabase
-                .from('customers')
-                .select('salesrep')
-                .not('salesrep', 'is', null);
-            
-            if (reps) {
-                const uniqueReps = Array.from(new Set(reps.map(r => r.salesrep as string)));
-                setAvailableReps(uniqueReps.sort());
+            // Fetch unique reps from the RPC
+            const { data: rpcData } = await supabase.rpc('get_form_dropdown_options');
+            if (rpcData && rpcData.sales_reps) {
+                setAvailableReps(rpcData.sales_reps);
             }
         }
     }
