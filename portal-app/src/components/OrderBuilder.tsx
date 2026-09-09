@@ -250,7 +250,7 @@ export function OrderBuilder() {
             const rate = item.showOverride ? item.overridePrice : "";
             const comment = item.showOverride ? item.comment : "";
             return [
-                customerId,
+                customer?.net_suite_id || '',
                 item.product.sku,
                 item.quantity,
                 rate,
