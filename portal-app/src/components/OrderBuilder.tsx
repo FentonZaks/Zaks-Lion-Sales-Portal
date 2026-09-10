@@ -208,6 +208,12 @@ export function OrderBuilder() {
         return price;
     };
 
+    const getStepQty = (product: Product) => {
+        if (product.inner_carton_qty) return product.inner_carton_qty;
+        if (product.master_case_qty) return product.master_case_qty;
+        return 1;
+    };
+
     const addToCart = (product: Product) => {
         const localQty = getInventoryForSelectedWarehouse(product);
         const totalQty = getTotalInventory(product);
@@ -220,13 +226,15 @@ export function OrderBuilder() {
             if (fallback) fallbackLocation = fallback[0];
         }
 
+        const step = getStepQty(product);
+
         const existing = cart.find(item => item.product.id === product.id);
         if (existing) {
-            setCart(cart.map(item => item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item));
+            setCart(cart.map(item => item.product.id === product.id ? { ...item, quantity: item.quantity + step } : item));
         } else {
             setCart([...cart, { 
                 product, 
-                quantity: 1, 
+                quantity: step, 
                 applicablePrice: getApplicablePrice(product),
                 showOverride: false,
                 fulfillment_location: fallbackLocation,
@@ -673,9 +681,27 @@ export function OrderBuilder() {
                                                         
                                                         {inCart ? (
                                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'white', border: '1px solid #16a34a', borderRadius: '8px', padding: '0.25rem' }}>
-                                                                <button onClick={() => updateQuantity(prod.id, inCart.quantity - 1)} style={{ width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', background: '#f0fdf4', color: '#16a34a', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>-</button>
-                                                                <span style={{ width: '30px', textAlign: 'center', fontWeight: 'bold' }}>{inCart.quantity}</span>
-                                                                <button onClick={() => updateQuantity(prod.id, inCart.quantity + 1)} style={{ width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', background: '#f0fdf4', color: '#16a34a', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>+</button>
+                                                                <button onClick={() => updateQuantity(prod.id, inCart.quantity - getStepQty(prod))} style={{ width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', background: '#f0fdf4', color: '#16a34a', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>-</button>
+                                                                <input 
+                                                                    type="number"
+                                                                    min="0"
+                                                                    value={inCart.quantity}
+                                                                    onChange={(e) => {
+                                                                        const val = e.target.value === '' ? 0 : parseInt(e.target.value, 10);
+                                                                        updateQuantity(prod.id, val);
+                                                                    }}
+                                                                    style={{ 
+                                                                        width: '50px', 
+                                                                        textAlign: 'center', 
+                                                                        fontWeight: 'bold', 
+                                                                        border: (inCart.quantity % getStepQty(prod) !== 0) ? '2px solid red' : '1px solid transparent',
+                                                                        backgroundColor: (inCart.quantity % getStepQty(prod) !== 0) ? '#fee2e2' : 'transparent',
+                                                                        borderRadius: '4px',
+                                                                        padding: '2px',
+                                                                        outline: 'none'
+                                                                    }} 
+                                                                />
+                                                                <button onClick={() => updateQuantity(prod.id, inCart.quantity + getStepQty(prod))} style={{ width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', background: '#f0fdf4', color: '#16a34a', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>+</button>
                                                             </div>
                                                         ) : (
                                                             <button 
