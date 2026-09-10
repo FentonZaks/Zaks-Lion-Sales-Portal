@@ -369,7 +369,7 @@ export const ProductRestrictionsManager: React.FC = () => {
     // Fetch all records for export
     const { data, error } = await supabase
       .from('products')
-      .select('sku, name, primary_category, allowed_provinces, allowed_countries, is_hidden, is_kit_only, inner_carton_qty, master_case_qty, is_archived')
+      .select('sku, name, primary_category, allowed_provinces, allowed_countries, is_hidden, is_kit_only, inner_carton_qty, master_case_qty, is_archived, msrp, store_price, canco_price, distributor_price, inventory_by_location')
       .order('sku', { ascending: true });
       
     if (error || !data) {
@@ -378,7 +378,7 @@ export const ProductRestrictionsManager: React.FC = () => {
       return;
     }
     
-    const headers = ['SKU', 'Name', 'Category', 'Allowed Provinces', 'Allowed Countries', 'Kit Only', 'Hidden', 'Archived', 'Inner Carton Qty', 'Master Case Qty'];
+    const headers = ['SKU', 'Name', 'Category', 'Allowed Provinces', 'Allowed Countries', 'Kit Only', 'Hidden', 'Archived', 'Inner Carton Qty', 'Master Case Qty', 'MSRP', 'Store Price', 'Canco Price', 'Distributor Price', 'Inventory'];
     
     const escapeCsv = (str: any) => {
       if (str === null || str === undefined) return '""';
@@ -390,6 +390,14 @@ export const ProductRestrictionsManager: React.FC = () => {
     };
     
     const rows = data.map(p => {
+      // Format inventory as a readable string: "BC: 100 | ON: 50"
+      let inventoryStr = '';
+      if (p.inventory_by_location && typeof p.inventory_by_location === 'object') {
+          inventoryStr = Object.entries(p.inventory_by_location)
+              .map(([loc, qty]) => `${loc}: ${qty}`)
+              .join(' | ');
+      }
+
       return [
         p.sku,
         p.name,
@@ -400,7 +408,12 @@ export const ProductRestrictionsManager: React.FC = () => {
         p.is_hidden ? 'TRUE' : 'FALSE',
         p.is_archived ? 'TRUE' : 'FALSE',
         p.inner_carton_qty || '',
-        p.master_case_qty || ''
+        p.master_case_qty || '',
+        p.msrp !== null ? Number(p.msrp).toFixed(2) : '',
+        p.store_price !== null ? Number(p.store_price).toFixed(2) : '',
+        p.canco_price !== null ? Number(p.canco_price).toFixed(2) : '',
+        p.distributor_price !== null ? Number(p.distributor_price).toFixed(2) : '',
+        inventoryStr
       ].map(escapeCsv).join(',');
     });
     
