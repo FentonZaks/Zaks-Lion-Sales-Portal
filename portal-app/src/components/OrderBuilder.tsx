@@ -57,6 +57,7 @@ export function OrderBuilder() {
 
     // Accordion state
     const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+    const [searchQuery, setSearchQuery] = useState('');
 
     useEffect(() => {
         supabase.auth.getSession().then(({ data }) => setUserId(data.session?.user.id || null));
@@ -448,8 +449,15 @@ export function OrderBuilder() {
         setLoading(false);
     };
 
+    // Apply Search Filter
+    const searchedProducts = filteredProducts.filter(p => {
+        if (!searchQuery) return true;
+        const q = searchQuery.toLowerCase();
+        return p.sku.toLowerCase().includes(q) || (p.name && p.name.toLowerCase().includes(q));
+    });
+
     // Group products by primary category
-    const groupedProducts = filteredProducts.reduce((acc, p) => {
+    const groupedProducts = searchedProducts.reduce((acc, p) => {
         const cat = p.primary_category || 'Uncategorized';
         if (!acc[cat]) acc[cat] = [];
         acc[cat].push(p);
@@ -591,8 +599,18 @@ export function OrderBuilder() {
                 {/* Product Catalog */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     
+                    <div style={{ marginBottom: '0.5rem' }}>
+                        <input
+                            type="text"
+                            placeholder="Search by SKU or Description..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            style={{ width: '100%', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)', fontSize: '1.1rem', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
+                        />
+                    </div>
+                    
                     {Object.keys(groupedProducts).sort().map(category => {
-                        const isExpanded = expandedCategories.has(category);
+                        const isExpanded = searchQuery ? true : expandedCategories.has(category);
                         const items = groupedProducts[category];
                         
                         return (
