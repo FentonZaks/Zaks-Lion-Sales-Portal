@@ -305,7 +305,7 @@ export function OrderBuilder() {
                 
                 let y = 60;
                 doc.setFont("helvetica", "bold");
-                doc.text("SKU", 20, y);
+                doc.text("SKU / Description", 20, y);
                 doc.text("Qty", 80, y);
                 doc.text("Est. Price", 110, y);
                 doc.text("Total", 150, y);
@@ -316,20 +316,56 @@ export function OrderBuilder() {
                     const price = item.overridePrice ?? item.applicablePrice;
                     const lineTotal = price * item.quantity;
                     
+                    // Main Line
+                    doc.setFont("helvetica", "bold");
                     doc.text(item.product.sku, 20, y);
+                    doc.setFont("helvetica", "normal");
                     doc.text(item.quantity.toString(), 80, y);
                     doc.text(`${price.toFixed(2)}`, 110, y);
                     doc.text(`${lineTotal.toFixed(2)}`, 150, y);
-                    y += 8;
+                    y += 6;
+                    
+                    // Description
+                    doc.setFontSize(10);
+                    doc.setTextColor(100, 100, 100);
+                    const desc = item.product.name.length > 55 ? item.product.name.substring(0, 52) + '...' : item.product.name;
+                    doc.text(desc, 20, y);
+                    doc.setTextColor(0, 0, 0);
+                    y += 6;
+                    
+                    // Kit Components
+                    if (item.product.kit_components && item.product.kit_components.length > 0) {
+                        doc.setFontSize(9);
+                        doc.setTextColor(120, 120, 120);
+                        item.product.kit_components.forEach(c => {
+                            const cp = allProducts.find(p => p.sku === c.sku);
+                            const compName = cp ? cp.name : 'Unknown';
+                            const compText = `L ${c.quantity * item.quantity}x ${c.sku} (${compName})`;
+                            const safeCompText = compText.length > 70 ? compText.substring(0, 67) + '...' : compText;
+                            doc.text(safeCompText, 25, y);
+                            y += 5;
+                            
+                            if (y > 270) {
+                                doc.addPage();
+                                y = 20;
+                            }
+                        });
+                        doc.setTextColor(0, 0, 0);
+                        y += 2;
+                    }
                     
                     if (item.showOverride && item.comment) {
                         doc.setFont("helvetica", "italic");
                         doc.setFontSize(10);
-                        doc.text(`Override: ${item.comment}`, 25, y);
+                        doc.setTextColor(217, 119, 6);
+                        doc.text(`Override: ${item.comment}`, 20, y);
+                        doc.setTextColor(0, 0, 0);
                         doc.setFont("helvetica", "normal");
-                        doc.setFontSize(12);
-                        y += 8;
+                        y += 6;
                     }
+                    
+                    doc.setFontSize(12);
+                    y += 4;
                     
                     if (y > 270) {
                         doc.addPage();
