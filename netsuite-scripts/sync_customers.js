@@ -33,10 +33,10 @@ define(['N/search', 'N/https', 'N/log', 'N/runtime'],
                 const SUPABASE_URL = 'https://gurkqbfgvpxtxhzgjriy.supabase.co';
                 
                 // Securely pull the key from a NetSuite Script Parameter instead of hardcoding it
-                const SUPABASE_SERVICE_KEY = runtime.getCurrentScript().getParameter({ name: 'custscript_supabase_service_key' }); 
+                const SUPABASE_SERVICE_KEY = runtime.getCurrentScript().getParameter({ name: 'custscript_supabase_key_cust' }); 
                 
                 if (!SUPABASE_SERVICE_KEY) {
-                    throw new Error("Missing Supabase Service Key. Please configure the custscript_supabase_service_key parameter in NetSuite.");
+                    throw new Error("Missing Supabase Service Key. Please configure the custscript_supabase_key_cust parameter in NetSuite.");
                 }
 
                 var isProduction = runtime.envType === runtime.EnvType.PRODUCTION;
