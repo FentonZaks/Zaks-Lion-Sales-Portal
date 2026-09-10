@@ -91,12 +91,12 @@ function(serverWidget, record, file, log, search, redirect) {
                     isDynamic: true
                 });
 
-                // Set Customer (Assuming the portal NetSuite ID is the Internal ID in NetSuite)
+                // Set Customer and Header Location
                 soRec.setValue({ fieldId: 'entity', value: customerId });
+                soRec.setValue({ fieldId: 'location', value: 1 }); // Zaks - Main Warehouse YYC
                 
                 // Cache for lookups to avoid exceeding governance limits on large orders
                 var itemCache = {};
-                var locationCache = {};
 
                 // Add Items
                 for (var k = 0; k < orderData.length; k++) {
@@ -119,40 +119,6 @@ function(serverWidget, record, file, log, search, redirect) {
                         }
                     }
 
-                    // 2. Lookup Location Internal ID by Name
-                    var locationInternalId = '';
-                    if (itemRow.locationName) {
-                        locationInternalId = locationCache[itemRow.locationName];
-                        if (!locationInternalId) {
-                            var locSearch = search.create({
-                                type: search.Type.LOCATION,
-                                filters: [['name', 'is', itemRow.locationName]],
-                                columns: ['internalid']
-                            });
-                            var locSet = locSearch.run().getRange({ start: 0, end: 1 });
-                            if (locSet && locSet.length > 0) {
-                                locationInternalId = locSet[0].getValue({ name: 'internalid' });
-                                locationCache[itemRow.locationName] = locationInternalId;
-                            }
-                        }
-                    }
-
-                    // Fallback to ANY active location if location is mandatory and we didn't find one
-                    if (!locationInternalId) {
-                        if (!locationCache['DEFAULT_FALLBACK']) {
-                            var fallbackSearch = search.create({
-                                type: search.Type.LOCATION,
-                                filters: [['isinactive', 'is', 'F']],
-                                columns: ['internalid']
-                            });
-                            var fallbackSet = fallbackSearch.run().getRange({ start: 0, end: 1 });
-                            if (fallbackSet && fallbackSet.length > 0) {
-                                locationCache['DEFAULT_FALLBACK'] = fallbackSet[0].getValue({ name: 'internalid' });
-                            }
-                        }
-                        locationInternalId = locationCache['DEFAULT_FALLBACK'];
-                    }
-
                     // Select new line
                     soRec.selectNewLine({ sublistId: 'item' });
                     soRec.setCurrentSublistValue({ sublistId: 'item', fieldId: 'item', value: itemInternalId });
@@ -164,9 +130,8 @@ function(serverWidget, record, file, log, search, redirect) {
                         soRec.setCurrentSublistValue({ sublistId: 'item', fieldId: 'rate', value: parseFloat(itemRow.rate) });
                     }
 
-                    if (locationInternalId) {
-                        soRec.setCurrentSublistValue({ sublistId: 'item', fieldId: 'location', value: locationInternalId });
-                    }
+                    // Hardcode Line Location to 1 (Zaks - Main Warehouse YYC)
+                    soRec.setCurrentSublistValue({ sublistId: 'item', fieldId: 'location', value: 1 });
 
                     if (itemRow.comment) {
                         soRec.setCurrentSublistValue({ sublistId: 'item', fieldId: 'description', value: 'Portal Note: ' + itemRow.comment });
