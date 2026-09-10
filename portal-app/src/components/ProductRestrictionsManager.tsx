@@ -161,6 +161,8 @@ export const ProductRestrictionsManager: React.FC = () => {
 
   const [edits, setEdits] = useState<Record<string, EditState>>({});
   
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  
   // Pagination & Filtering state
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -314,6 +316,206 @@ export const ProductRestrictionsManager: React.FC = () => {
     return products.some(isProductModified);
   }, [products, isProductModified]);
 
+  function parseCSV(text: string) {
+      const result = [];
+      let row = [];
+      let inQuotes = false;
+      let val = '';
+      
+      for (let i = 0; i < text.length; i++) {
+          let char = text[i];
+          
+          if (inQuotes) {
+              if (char === '"') {
+                  if (text[i + 1] === '"') {
+                      val += '"';
+                      i++;
+                  } else {
+                      inQuotes = false;
+                  }
+              } else {
+                  val += char;
+              }
+          } else {
+              if (char === '"') {
+                  inQuotes = true;
+              } else if (char === ',') {
+                  row.push(val);
+                  val = '';
+              } else if (char === '\n' || char === '\r') {
+                  if (char === '\r' && text[i + 1] === '\n') i++;
+                  row.push(val);
+                  result.push(row);
+                  row = [];
+                  val = '';
+              } else {
+                  val += char;
+              }
+          }
+      }
+      if (val || text[text.length - 1] === ',') {
+          row.push(val);
+      }
+      if (row.length > 0) {
+          result.push(row);
+      }
+      return result;
+  }
+
+  const exportCSV = async () => {
+    setSaving(true);
+    setMessage({ type: 'success', text: 'Generating CSV...' });
+    
+    // Fetch all records for export
+    const { data, error } = await supabase
+      .from('products')
+      .select('sku, name, primary_category, allowed_provinces, allowed_countries, is_hidden, is_kit_only, inner_carton_qty, master_case_qty, is_archived')
+      .order('sku', { ascending: true });
+      
+    if (error || !data) {
+      setMessage({ type: 'error', text: 'Failed to fetch data for export.' });
+      setSaving(false);
+      return;
+    }
+    
+    const headers = ['SKU', 'Name', 'Category', 'Allowed Provinces', 'Allowed Countries', 'Kit Only', 'Hidden', 'Archived', 'Inner Carton Qty', 'Master Case Qty'];
+    
+    const escapeCsv = (str: any) => {
+      if (str === null || str === undefined) return '""';
+      const s = String(str);
+      if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+        return `"${s.replace(/"/g, '""')}"`;
+      }
+      return `"${s}"`;
+    };
+    
+    const rows = data.map(p => {
+      return [
+        p.sku,
+        p.name,
+        p.primary_category || '',
+        (p.allowed_provinces || []).join(', '),
+        (p.allowed_countries || []).join(', '),
+        p.is_kit_only ? 'TRUE' : 'FALSE',
+        p.is_hidden ? 'TRUE' : 'FALSE',
+        p.is_archived ? 'TRUE' : 'FALSE',
+        p.inner_carton_qty || '',
+        p.master_case_qty || ''
+      ].map(escapeCsv).join(',');
+    });
+    
+    const csvContent = headers.map(escapeCsv).join(',') + '\n' + rows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `product_restrictions_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    setMessage({ type: 'success', text: 'CSV Exported Successfully.' });
+    setSaving(false);
+  };
+
+  const importCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    setSaving(true);
+    setMessage({ type: 'success', text: 'Reading CSV...' });
+    
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const text = e.target?.result as string;
+      if (!text) return;
+      
+      const rows = parseCSV(text);
+      if (rows.length < 2) {
+        setMessage({ type: 'error', text: 'CSV is empty or invalid.' });
+        setSaving(false);
+        return;
+      }
+      
+      const headerRow = rows[0].map((h: string) => h.trim().toLowerCase());
+      const skuIdx = headerRow.findIndex((h: string) => h === 'sku');
+      const provIdx = headerRow.findIndex((h: string) => h === 'allowed provinces');
+      const countIdx = headerRow.findIndex((h: string) => h === 'allowed countries');
+      const kitIdx = headerRow.findIndex((h: string) => h === 'kit only');
+      const hideIdx = headerRow.findIndex((h: string) => h === 'hidden');
+      const archIdx = headerRow.findIndex((h: string) => h === 'archived');
+      const inIdx = headerRow.findIndex((h: string) => h === 'inner carton qty');
+      const masterIdx = headerRow.findIndex((h: string) => h === 'master case qty');
+      
+      if (skuIdx === -1) {
+        setMessage({ type: 'error', text: 'CSV must contain a "SKU" column.' });
+        setSaving(false);
+        return;
+      }
+      
+      const modifications: any[] = [];
+      
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (row.length <= skuIdx || !row[skuIdx]?.trim()) continue;
+        
+        const sku = row[skuIdx].trim();
+        
+        const getBool = (idx: number, fallback: boolean) => {
+            if (idx === -1) return fallback;
+            const val = row[idx]?.trim().toUpperCase();
+            if (val === 'TRUE' || val === '1' || val === 'Y' || val === 'YES') return true;
+            if (val === 'FALSE' || val === '0' || val === 'N' || val === 'NO') return false;
+            return fallback;
+        };
+        
+        const getArr = (idx: number) => {
+            if (idx === -1 || !row[idx]?.trim()) return [];
+            return row[idx].split(',').map((s: string) => s.trim().toUpperCase()).filter(Boolean);
+        };
+        
+        const getNum = (idx: number) => {
+            if (idx === -1 || !row[idx]?.trim()) return null;
+            const parsed = parseInt(row[idx].trim(), 10);
+            return isNaN(parsed) ? null : parsed;
+        };
+        
+        modifications.push({
+          sku: sku,
+          allowed_provinces: getArr(provIdx),
+          allowed_countries: getArr(countIdx),
+          is_hidden: getBool(hideIdx, false),
+          is_kit_only: getBool(kitIdx, false),
+          is_archived: getBool(archIdx, false),
+          inner_carton_qty: getNum(inIdx),
+          master_case_qty: getNum(masterIdx)
+        });
+      }
+      
+      if (modifications.length === 0) {
+        setMessage({ type: 'success', text: 'No products found to update.' });
+        setSaving(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        return;
+      }
+
+      setMessage({ type: 'success', text: `Updating ${modifications.length} products via CSV...` });
+      
+      const { error } = await supabase.rpc('bulk_update_products', { payload: modifications });
+      if (error) {
+          console.error(error);
+          setMessage({ type: 'error', text: 'Failed to import CSV into database.' });
+      } else {
+          setMessage({ type: 'success', text: `Successfully imported and updated ${modifications.length} products.` });
+          fetchProducts();
+      }
+      
+      setSaving(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+    reader.readAsText(file);
+  };
+
   const totalPages = Math.ceil(totalCount / pageSize);
 
   return (
@@ -325,27 +527,72 @@ export const ProductRestrictionsManager: React.FC = () => {
             Define geographical sales restrictions. Enter comma-separated 2-letter codes. Leave blank for global availability. Set case quantities and kit-only restrictions.
           </p>
         </div>
-        <button
-          onClick={saveAllModified}
-          disabled={!hasAnyModifications || saving}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.5rem 1rem',
-            borderRadius: '6px',
-            fontSize: '0.875rem',
-            fontWeight: 500,
-            border: 'none',
-            cursor: hasAnyModifications ? 'pointer' : 'not-allowed',
-            backgroundColor: hasAnyModifications ? 'var(--primary-color)' : '#e5e7eb',
-            color: hasAnyModifications ? 'white' : '#9ca3af',
-            transition: 'all 0.2s',
-            whiteSpace: 'nowrap'
-          }}
-        >
-          Save All Changes
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <input 
+            type="file" 
+            accept=".csv" 
+            ref={fileInputRef} 
+            onChange={importCSV} 
+            style={{ display: 'none' }} 
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={saving}
+            style={{
+              padding: '0.5rem 1rem',
+              borderRadius: '6px',
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              border: '1px solid var(--border-color)',
+              cursor: saving ? 'not-allowed' : 'pointer',
+              backgroundColor: 'white',
+              color: 'var(--text-primary)',
+              transition: 'all 0.2s',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            Import CSV
+          </button>
+          <button
+            onClick={exportCSV}
+            disabled={saving}
+            style={{
+              padding: '0.5rem 1rem',
+              borderRadius: '6px',
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              border: '1px solid var(--border-color)',
+              cursor: saving ? 'not-allowed' : 'pointer',
+              backgroundColor: 'white',
+              color: 'var(--text-primary)',
+              transition: 'all 0.2s',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            Export CSV
+          </button>
+          <button
+            onClick={saveAllModified}
+            disabled={!hasAnyModifications || saving}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.5rem 1rem',
+              borderRadius: '6px',
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              border: 'none',
+              cursor: hasAnyModifications ? 'pointer' : 'not-allowed',
+              backgroundColor: hasAnyModifications ? 'var(--primary-color)' : '#e5e7eb',
+              color: hasAnyModifications ? 'white' : '#9ca3af',
+              transition: 'all 0.2s',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            Save Changes
+          </button>
+        </div>
       </div>
 
       {message && (
