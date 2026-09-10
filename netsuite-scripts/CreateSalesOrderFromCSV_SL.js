@@ -107,7 +107,7 @@ function(serverWidget, record, file, log, search, redirect) {
                     if (!itemInternalId) {
                         var itemSearch = search.create({
                             type: search.Type.ITEM,
-                            filters: [['nameid', 'is', itemRow.sku]],
+                            filters: [['itemid', 'is', itemRow.sku]],
                             columns: ['internalid']
                         });
                         var resultSet = itemSearch.run().getRange({ start: 0, end: 1 });
