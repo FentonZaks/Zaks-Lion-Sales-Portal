@@ -369,7 +369,7 @@ export const ProductRestrictionsManager: React.FC = () => {
     // Fetch all records for export
     const { data, error } = await supabase
       .from('products')
-      .select('sku, name, primary_category, allowed_provinces, allowed_countries, is_hidden, is_kit_only, inner_carton_qty, master_case_qty, is_archived, msrp, store_price, canco_price, distributor_price, inventory_by_location')
+      .select('sku, name, primary_category, allowed_provinces, allowed_countries, is_hidden, is_kit_only, inner_carton_qty, master_case_qty, is_archived, base_price, price_store, price_canco, price_distributor, inventory_by_location')
       .order('sku', { ascending: true });
       
     if (error || !data) {
@@ -409,10 +409,10 @@ export const ProductRestrictionsManager: React.FC = () => {
         p.is_archived ? 'TRUE' : 'FALSE',
         p.inner_carton_qty || '',
         p.master_case_qty || '',
-        p.msrp !== null ? Number(p.msrp).toFixed(2) : '',
-        p.store_price !== null ? Number(p.store_price).toFixed(2) : '',
-        p.canco_price !== null ? Number(p.canco_price).toFixed(2) : '',
-        p.distributor_price !== null ? Number(p.distributor_price).toFixed(2) : '',
+        p.base_price !== null && p.base_price !== undefined ? Number(p.base_price).toFixed(2) : '',
+        p.price_store !== null && p.price_store !== undefined ? Number(p.price_store).toFixed(2) : '',
+        p.price_canco !== null && p.price_canco !== undefined ? Number(p.price_canco).toFixed(2) : '',
+        p.price_distributor !== null && p.price_distributor !== undefined ? Number(p.price_distributor).toFixed(2) : '',
         inventoryStr
       ].map(escapeCsv).join(',');
     });
