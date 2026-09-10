@@ -378,7 +378,17 @@ export const ProductRestrictionsManager: React.FC = () => {
       return;
     }
     
-    const headers = ['SKU', 'Name', 'Category', 'Allowed Provinces', 'Allowed Countries', 'Kit Only', 'Hidden', 'Archived', 'Inner Carton Qty', 'Master Case Qty', 'MSRP', 'Store Price', 'Canco Price', 'Distributor Price', 'Inventory'];
+    // Dynamically discover all unique warehouse locations
+    const warehouses = new Set<string>();
+    data.forEach(p => {
+        if (p.inventory_by_location && typeof p.inventory_by_location === 'object') {
+            Object.keys(p.inventory_by_location).forEach(w => warehouses.add(w));
+        }
+    });
+    const warehouseList = Array.from(warehouses).sort();
+
+    const headers = ['SKU', 'Name', 'Category', 'Allowed Provinces', 'Allowed Countries', 'Kit Only', 'Hidden', 'Archived', 'Inner Carton Qty', 'Master Case Qty', 'MSRP', 'Store Price', 'Canco Price', 'Distributor Price'];
+    warehouseList.forEach(w => headers.push(`Inventory ${w}`));
     
     const escapeCsv = (str: any) => {
       if (str === null || str === undefined) return '""';
@@ -390,15 +400,7 @@ export const ProductRestrictionsManager: React.FC = () => {
     };
     
     const rows = data.map(p => {
-      // Format inventory as a readable string: "BC: 100 | ON: 50"
-      let inventoryStr = '';
-      if (p.inventory_by_location && typeof p.inventory_by_location === 'object') {
-          inventoryStr = Object.entries(p.inventory_by_location)
-              .map(([loc, qty]) => `${loc}: ${qty}`)
-              .join(' | ');
-      }
-
-      return [
+      const baseRow = [
         p.sku,
         p.name,
         p.primary_category || '',
@@ -412,9 +414,17 @@ export const ProductRestrictionsManager: React.FC = () => {
         p.base_price !== null && p.base_price !== undefined ? Number(p.base_price).toFixed(2) : '',
         p.price_store !== null && p.price_store !== undefined ? Number(p.price_store).toFixed(2) : '',
         p.price_canco !== null && p.price_canco !== undefined ? Number(p.price_canco).toFixed(2) : '',
-        p.price_distributor !== null && p.price_distributor !== undefined ? Number(p.price_distributor).toFixed(2) : '',
-        inventoryStr
-      ].map(escapeCsv).join(',');
+        p.price_distributor !== null && p.price_distributor !== undefined ? Number(p.price_distributor).toFixed(2) : ''
+      ];
+
+      const inventoryCols = warehouseList.map(w => {
+          if (p.inventory_by_location && typeof p.inventory_by_location === 'object') {
+              return p.inventory_by_location[w] !== undefined ? p.inventory_by_location[w] : '0';
+          }
+          return '0';
+      });
+
+      return [...baseRow, ...inventoryCols].map(escapeCsv).join(',');
     });
     
     const csvContent = headers.map(escapeCsv).join(',') + '\n' + rows.join('\n');
