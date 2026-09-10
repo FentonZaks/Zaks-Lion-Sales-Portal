@@ -654,11 +654,7 @@ export function OrderBuilder() {
                                                                     KIT ONLY
                                                                 </span>
                                                             )}
-                                                            {prod.kit_components && prod.kit_components.length > 0 && (
-                                                                <span title={getKitBreakdownText(prod)} style={{ display: 'inline-flex', alignItems: 'center', cursor: 'help' }}>
-                                                                    <Info size={14} color="#64748b" />
-                                                                </span>
-                                                            )}
+
                                                             {isSplit && (
                                                                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.7rem', padding: '0.1rem 0.5rem', backgroundColor: '#fef3c7', color: '#92400e', borderRadius: '4px', fontWeight: 700, letterSpacing: '0.05em' }}>
                                                                     <AlertTriangle size={12} /> ALTERNATE WAREHOUSE
@@ -672,6 +668,21 @@ export function OrderBuilder() {
                                                             {prod.inner_carton_qty && <span><strong>Inner:</strong> {prod.inner_carton_qty}</span>}
                                                             {prod.master_case_qty && <span><strong>Master:</strong> {prod.master_case_qty}</span>}
                                                         </div>
+                                                        
+                                                        {prod.kit_components && prod.kit_components.length > 0 && (
+                                                            <div style={{ marginTop: '0.75rem', paddingLeft: '0.75rem', borderLeft: '2px solid var(--border-color)', fontSize: '0.8rem' }}>
+                                                                {prod.kit_components.map(c => {
+                                                                    const cp = allProducts.find(p => p.sku === c.sku);
+                                                                    const inv = cp ? (cp.inventory_by_location?.[selectedWarehouse] || 0) : 0;
+                                                                    const color = inv === 0 ? '#ef4444' : 'var(--text-secondary)';
+                                                                    return (
+                                                                        <div key={c.sku} style={{ color, marginBottom: '0.25rem' }}>
+                                                                            ↳ {c.quantity}x {c.sku} ({cp?.name || 'Unknown'}) | {inv} avail
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     
                                                     <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.75rem', minWidth: '150px' }}>
@@ -758,10 +769,12 @@ export function OrderBuilder() {
                                                         </div>
                                                     )}
                                                     {item.product.kit_components && item.product.kit_components.length > 0 && (
-                                                        <div style={{ marginTop: '0.5rem', paddingLeft: '0.5rem', borderLeft: '2px solid var(--border-color)', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                                                        <div style={{ marginTop: '0.5rem', paddingLeft: '0.5rem', borderLeft: '2px solid var(--border-color)', fontSize: '0.75rem' }}>
                                                             {item.product.kit_components.map(c => {
                                                                 const cp = allProducts.find(p => p.sku === c.sku);
-                                                                return <div key={c.sku} title={cp?.name || 'Unknown'}>↳ {c.quantity * item.quantity}x {c.sku}</div>
+                                                                const inv = cp ? (cp.inventory_by_location?.[selectedWarehouse] || 0) : 0;
+                                                                const color = inv === 0 ? '#ef4444' : 'var(--text-secondary)';
+                                                                return <div key={c.sku} title={cp?.name || 'Unknown'} style={{ color }}>↳ {c.quantity * item.quantity}x {c.sku}</div>
                                                             })}
                                                         </div>
                                                     )}
