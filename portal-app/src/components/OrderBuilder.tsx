@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { ShoppingCart, Package, AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, Info } from 'lucide-react';
-
+import { ShoppingCart, Package, AlertTriangle, CheckCircle2, ChevronDown, ChevronRight } from 'lucide-react';
 interface Product {
     id: string;
     sku: string;
@@ -140,16 +139,6 @@ export function OrderBuilder() {
             next.add(category);
         }
         setExpandedCategories(next);
-    };
-
-    const getKitBreakdownText = (product: Product) => {
-        if (!product.kit_components || product.kit_components.length === 0) return '';
-        return 'Kit Components:\n' + product.kit_components.map(c => {
-            const compProduct = allProducts.find(p => p.sku === c.sku);
-            const name = compProduct ? compProduct.name : 'Unknown';
-            const inv = compProduct ? (compProduct.inventory_by_location?.[selectedWarehouse] || 0) : 0;
-            return `- ${c.quantity}x ${c.sku} (${name}) | ${inv} avail in ${selectedWarehouse || 'network'}`;
-        }).join('\n');
     };
 
     const getInventoryForSelectedWarehouse = (product: Product) => {
