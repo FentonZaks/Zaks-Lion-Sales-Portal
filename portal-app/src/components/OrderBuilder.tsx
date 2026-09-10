@@ -50,6 +50,10 @@ export function OrderBuilder() {
     const [loading, setLoading] = useState(true);
     const [userId, setUserId] = useState<string | null>(null);
     const [step, setStep] = useState<'build' | 'review'>('build');
+    
+    // Header level fields
+    const [internalMemo, setInternalMemo] = useState('');
+    const [poNumber, setPoNumber] = useState('');
 
     // Accordion state
     const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
@@ -259,7 +263,7 @@ export function OrderBuilder() {
 
     const generateCSV = () => {
         // Kit Option A: Just send the parent SKU. Leave pricing blank so NetSuite calculates it.
-        const headers = ["Customer ID", "SKU", "Quantity", "Rate", "Comment", "Location"];
+        const headers = ["Customer ID", "SKU", "Quantity", "Rate", "Comment", "Location", "Internal Memo", "PO Number"];
         const rows = cart.map(item => {
             // If they didn't override, we send empty string for Rate so NetSuite calculates it.
             const rate = item.showOverride ? item.overridePrice : "";
@@ -270,7 +274,9 @@ export function OrderBuilder() {
                 item.quantity,
                 rate,
                 comment,
-                item.fulfillment_location
+                item.fulfillment_location,
+                internalMemo,
+                poNumber
             ];
         });
         
@@ -377,7 +383,9 @@ export function OrderBuilder() {
                 customer_id: customerId,
                 user_id: userId,
                 status: 'DRAFT',
-                subtotal: subtotal
+                subtotal: subtotal,
+                po_number: poNumber || null,
+                internal_memo: internalMemo || null
             }).select().single();
 
             if (orderError) throw orderError;
@@ -434,6 +442,29 @@ export function OrderBuilder() {
                         <div>
                             <strong style={{ display: 'block', color: 'var(--text-secondary)' }}>Total Items</strong>
                             <div>{cart.reduce((sum, i) => sum + i.quantity, 0)} Items</div>
+                        </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', paddingBottom: '1.5rem', borderBottom: '1px solid var(--border-color)' }}>
+                        <div>
+                            <label style={{ display: 'block', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.875rem' }}>PO #</label>
+                            <input 
+                                type="text"
+                                value={poNumber}
+                                onChange={(e) => setPoNumber(e.target.value)}
+                                placeholder="Enter PO Number (Optional)"
+                                style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '1rem' }}
+                            />
+                        </div>
+                        <div>
+                            <label style={{ display: 'block', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.875rem' }}>Internal Memo</label>
+                            <input 
+                                type="text"
+                                value={internalMemo}
+                                onChange={(e) => setInternalMemo(e.target.value)}
+                                placeholder="Enter Internal Memo (Optional)"
+                                style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '1rem' }}
+                            />
                         </div>
                     </div>
 

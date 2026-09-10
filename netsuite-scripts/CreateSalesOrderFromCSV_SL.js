@@ -43,9 +43,11 @@ function(serverWidget, record, file, log, search, redirect) {
                     throw new Error("CSV file is empty or missing data.");
                 }
 
-                // Headers: Customer ID, SKU, Quantity, Rate, Comment, Location
+                // Headers: Customer ID, SKU, Quantity, Rate, Comment, Location, Internal Memo, PO Number
                 var orderData = [];
                 var customerId = '';
+                var headerInternalMemo = '';
+                var headerPoNumber = '';
 
                 for (var i = 1; i < lines.length; i++) {
                     var line = lines[i].trim();
@@ -64,10 +66,15 @@ function(serverWidget, record, file, log, search, redirect) {
                         var rate = parts.length > 3 ? parts[3] : '';
                         var comment = parts.length > 4 ? parts[4] : '';
                         var locationName = parts.length > 5 ? parts[5] : '';
+                        var intMemo = parts.length > 6 ? parts[6] : '';
+                        var poNum = parts.length > 7 ? parts[7] : '';
 
                         if (lineCustId) {
                             customerId = lineCustId; // Take customer ID from the first valid line
                         }
+                        
+                        if (!headerInternalMemo && intMemo) headerInternalMemo = intMemo;
+                        if (!headerPoNumber && poNum) headerPoNumber = poNum;
 
                         orderData.push({
                             sku: sku,
@@ -116,6 +123,16 @@ function(serverWidget, record, file, log, search, redirect) {
                 // Set Customer and Header Location
                 soRec.setValue({ fieldId: 'entity', value: customerId });
                 soRec.setValue({ fieldId: 'location', value: DEFAULT_LOCATION_ID });
+                
+                if (headerPoNumber) {
+                    soRec.setValue({ fieldId: 'otherrefnum', value: headerPoNumber });
+                }
+                
+                if (headerInternalMemo) {
+                    // Note: If "INTERNAL MEMO" in NetSuite is a custom field rather than the standard Memo, 
+                    // you may need to change 'memo' below to the custom field ID (e.g. 'custbody_internal_memo')
+                    soRec.setValue({ fieldId: 'memo', value: headerInternalMemo });
+                }
                 
                 // Cache for lookups to avoid exceeding governance limits on large orders
                 var itemCache = {};
