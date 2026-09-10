@@ -137,6 +137,22 @@ function(serverWidget, record, file, log, search, redirect) {
                         }
                     }
 
+                    // Fallback to ANY active location if location is mandatory and we didn't find one
+                    if (!locationInternalId) {
+                        if (!locationCache['DEFAULT_FALLBACK']) {
+                            var fallbackSearch = search.create({
+                                type: search.Type.LOCATION,
+                                filters: [['isinactive', 'is', 'F']],
+                                columns: ['internalid']
+                            });
+                            var fallbackSet = fallbackSearch.run().getRange({ start: 0, end: 1 });
+                            if (fallbackSet && fallbackSet.length > 0) {
+                                locationCache['DEFAULT_FALLBACK'] = fallbackSet[0].getValue({ name: 'internalid' });
+                            }
+                        }
+                        locationInternalId = locationCache['DEFAULT_FALLBACK'];
+                    }
+
                     // Select new line
                     soRec.selectNewLine({ sublistId: 'item' });
                     soRec.setCurrentSublistValue({ sublistId: 'item', fieldId: 'item', value: itemInternalId });
