@@ -91,9 +91,31 @@ function(serverWidget, record, file, log, search, redirect) {
                     isDynamic: true
                 });
 
+                // FUTURE CONFIGURATION: Map Portal Location Names to NetSuite Internal IDs
+                // To activate dynamic locations down the road, you can use: LOCATION_MAP[itemRow.locationName] || DEFAULT_LOCATION_ID
+                var LOCATION_MAP = {
+                    'Zaks - Main Warehouse YYC': 1,
+                    'Zaks - Edmonton Warehouse': 2,
+                    'Lion - Warehouse YYC': 3,
+                    'Lion USA - Gunship 3PL Utah': 5,
+                    'Lion USA - Broadrange Logistics': 8,
+                    'Lion - Defective Warehouse YYC': 10,
+                    'Lion USA - Defective Warehouse Broadrange Logistics': 11,
+                    'Zaks - Defective Main Warehouse': 12,
+                    'Zaks - Defective Edmonton Warehouse': 14,
+                    'Lion USA - Defective Warehouse Ferndale WA': 15,
+                    'Lion Imports USA Inc.': 18,
+                    'Lion USA - Walgreen Warehouse': 19,
+                    'Lion - Warehouse YYC : Zaks Foods ULC': 20,
+                    'Zaks - Main Warehouse YYC : Zaks Foods ULC': 22
+                };
+
+                // Currently hardcoded to 1 for initial launch.
+                var DEFAULT_LOCATION_ID = 1;
+
                 // Set Customer and Header Location
                 soRec.setValue({ fieldId: 'entity', value: customerId });
-                soRec.setValue({ fieldId: 'location', value: 1 }); // Zaks - Main Warehouse YYC
+                soRec.setValue({ fieldId: 'location', value: DEFAULT_LOCATION_ID });
                 
                 // Cache for lookups to avoid exceeding governance limits on large orders
                 var itemCache = {};
@@ -130,8 +152,8 @@ function(serverWidget, record, file, log, search, redirect) {
                         soRec.setCurrentSublistValue({ sublistId: 'item', fieldId: 'rate', value: parseFloat(itemRow.rate) });
                     }
 
-                    // Hardcode Line Location to 1 (Zaks - Main Warehouse YYC)
-                    soRec.setCurrentSublistValue({ sublistId: 'item', fieldId: 'location', value: 1 });
+                    // Hardcode Line Location to default
+                    soRec.setCurrentSublistValue({ sublistId: 'item', fieldId: 'location', value: DEFAULT_LOCATION_ID });
 
                     if (itemRow.comment) {
                         soRec.setCurrentSublistValue({ sublistId: 'item', fieldId: 'description', value: 'Portal Note: ' + itemRow.comment });
