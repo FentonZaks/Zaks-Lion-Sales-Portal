@@ -122,7 +122,13 @@ export function OrderBuilder() {
             });
             const whArray = Array.from(uniqueWarehouses).sort();
             setWarehouses(whArray);
-            if (whArray.length > 0) setSelectedWarehouse(whArray[0]);
+            if (whArray.length > 0) {
+                if (whArray.includes('Zaks - Main Warehouse YYC')) {
+                    setSelectedWarehouse('Zaks - Main Warehouse YYC');
+                } else {
+                    setSelectedWarehouse(whArray[0]);
+                }
+            }
         }
         setLoading(false);
     }
@@ -476,7 +482,18 @@ export function OrderBuilder() {
         return acc;
     }, {} as Record<string, Product[]>);
 
-    if (loading && allProducts.length === 0) return <div className="card">Loading...</div>;
+    if (isAuthorized === false) {
+        return (
+            <div style={{ padding: '3rem', textAlign: 'center' }}>
+                <AlertTriangle size={48} color="#ef4444" style={{ marginBottom: '1rem' }} />
+                <h2 style={{ color: 'var(--text-primary)', marginBottom: '0.5rem' }}>Access Denied</h2>
+                <p style={{ color: 'var(--text-secondary)' }}>You do not have permission to access the Draft Order builder at this time.</p>
+                <button onClick={() => navigate(-1)} className="btn btn-secondary" style={{ marginTop: '1.5rem' }}>Go Back</button>
+            </div>
+        );
+    }
+
+    if ((loading || isAuthorized === null) && allProducts.length === 0) return <div className="card">Loading...</div>;
 
 
     if (step === 'review') {
@@ -598,7 +615,8 @@ export function OrderBuilder() {
                     <select 
                         value={selectedWarehouse}
                         onChange={(e) => setSelectedWarehouse(e.target.value)}
-                        style={{ width: '250px', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '1rem', cursor: 'pointer', backgroundColor: '#f8fafc' }}
+                        disabled={true}
+                        style={{ width: '250px', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '1rem', cursor: 'not-allowed', backgroundColor: '#e2e8f0', color: 'var(--text-secondary)' }}
                     >
                         {warehouses.map(w => (
                             <option key={w} value={w}>{w}</option>
