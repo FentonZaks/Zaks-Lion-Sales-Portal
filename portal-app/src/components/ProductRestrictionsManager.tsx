@@ -37,14 +37,16 @@ const ProductRow = React.memo(({
   isModified, 
   onChange, 
   onSave, 
-  saving 
+  saving,
+  availableCategories
 }: { 
   product: Product, 
   edit: EditState, 
   isModified: boolean, 
   onChange: (sku: string, field: keyof EditState, value: any) => void, 
   onSave: (sku: string) => void, 
-  saving: boolean 
+  saving: boolean,
+  availableCategories: string[]
 }) => {
   return (
     <tr style={{ borderBottom: '1px solid var(--border-color)', transition: 'background-color 0.2s', backgroundColor: edit.is_archived ? '#f8fafc' : (edit.is_hidden ? 'rgba(239, 68, 68, 0.05)' : 'transparent') }}>
@@ -63,13 +65,16 @@ const ProductRow = React.memo(({
       </td>
       <td style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
         <div style={{ marginBottom: '0.25rem', fontSize: '0.75rem' }}>{product.primary_category || 'N/A'}</div>
-        <input
-          type="text"
+        <select
           value={edit.override_category}
           onChange={(e) => onChange(product.sku, 'override_category', e.target.value)}
-          placeholder="Override Category"
           style={{ width: '130px', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border-color)', fontSize: '0.875rem' }}
-        />
+        >
+          <option value="">-- No Override --</option>
+          {availableCategories.map(cat => (
+            <option key={cat} value={cat}>{cat}</option>
+          ))}
+        </select>
       </td>
       <td style={{ padding: '0.75rem 1rem' }}>
         <input
@@ -179,6 +184,7 @@ export const ProductRestrictionsManager: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
 
   const [edits, setEdits] = useState<Record<string, EditState>>({});
   
@@ -201,6 +207,17 @@ export const ProductRestrictionsManager: React.FC = () => {
     }, 300);
     return () => clearTimeout(handler);
   }, [searchQuery]);
+
+  useEffect(() => {
+    async function fetchCategories() {
+        const { data } = await supabase.from('products').select('primary_category').not('primary_category', 'is', null);
+        if (data) {
+            const unique = Array.from(new Set(data.map(d => d.primary_category))).sort();
+            setAvailableCategories(unique as string[]);
+        }
+    }
+    fetchCategories();
+  }, []);
 
   useEffect(() => {
     fetchProducts();
@@ -534,9 +551,12 @@ export const ProductRestrictionsManager: React.FC = () => {
             return isNaN(parsed) ? null : parsed;
         };
         
+        const catValue = overrideIdx !== -1 && row[overrideIdx]?.trim() ? row[overrideIdx].trim() : null;
+        const validCategory = catValue && availableCategories.includes(catValue) ? catValue : null;
+        
         modifications.push({
           sku: sku,
-          override_category: overrideIdx !== -1 && row[overrideIdx]?.trim() ? row[overrideIdx].trim() : null,
+          override_category: validCategory,
           sort_rank: getNum(sortIdx) || 0,
           allowed_provinces: getArr(provIdx),
           allowed_countries: getArr(countIdx),
@@ -749,6 +769,7 @@ export const ProductRestrictionsManager: React.FC = () => {
                   onChange={handleEditChange}
                   onSave={saveProduct}
                   saving={saving}
+                  availableCategories={availableCategories}
                 />
               ))}
             </tbody>
