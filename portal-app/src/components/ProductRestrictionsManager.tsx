@@ -199,6 +199,8 @@ export const ProductRestrictionsManager: React.FC = () => {
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [viewArchived, setViewArchived] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [sortColumn, setSortColumn] = useState('sku');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   // Debounce search input
   useEffect(() => {
@@ -222,7 +224,7 @@ export const ProductRestrictionsManager: React.FC = () => {
 
   useEffect(() => {
     fetchProducts();
-  }, [debouncedQuery, page, viewArchived, categoryFilter]);
+  }, [debouncedQuery, page, viewArchived, categoryFilter, sortColumn, sortDirection]);
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -241,7 +243,10 @@ export const ProductRestrictionsManager: React.FC = () => {
     }
 
     // Sort order
-    query = query.order('is_hidden', { ascending: true }).order('sku', { ascending: true });
+    query = query.order(sortColumn, { ascending: sortDirection === 'asc' });
+    if (sortColumn !== 'sku') {
+      query = query.order('sku', { ascending: true }); // secondary sort
+    }
 
     // Pagination
     const from = (page - 1) * pageSize;
@@ -597,6 +602,15 @@ export const ProductRestrictionsManager: React.FC = () => {
     reader.readAsText(file);
   };
 
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
   const totalPages = Math.ceil(totalCount / pageSize);
 
   return (
@@ -765,15 +779,15 @@ export const ProductRestrictionsManager: React.FC = () => {
           <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
-                <th style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-secondary)' }}>SKU</th>
-                <th style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Product Name & Status</th>
-                <th style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Category Override</th>
-                <th style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Sort Rank</th>
+                <th onClick={() => handleSort('sku')} style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-secondary)', cursor: 'pointer', whiteSpace: 'nowrap' }}>SKU {sortColumn === 'sku' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                <th onClick={() => handleSort('name')} style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-secondary)', cursor: 'pointer', whiteSpace: 'nowrap' }}>Product Name & Status {sortColumn === 'name' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                <th onClick={() => handleSort('override_category')} style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-secondary)', cursor: 'pointer', whiteSpace: 'nowrap' }}>Category Override {sortColumn === 'override_category' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                <th onClick={() => handleSort('sort_rank')} style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-secondary)', cursor: 'pointer', whiteSpace: 'nowrap' }}>Sort Rank {sortColumn === 'sort_rank' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                 <th style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Allowed Provinces</th>
                 <th style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Allowed Countries</th>
-                <th style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-secondary)', textAlign: 'center' }}>Kit Only</th>
-                <th style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-secondary)', textAlign: 'center' }}>Hidden</th>
-                <th style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-secondary)', textAlign: 'center' }}>Archive</th>
+                <th onClick={() => handleSort('is_kit_only')} style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-secondary)', textAlign: 'center', cursor: 'pointer', whiteSpace: 'nowrap' }}>Kit Only {sortColumn === 'is_kit_only' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                <th onClick={() => handleSort('is_hidden')} style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-secondary)', textAlign: 'center', cursor: 'pointer', whiteSpace: 'nowrap' }}>Hidden {sortColumn === 'is_hidden' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                <th onClick={() => handleSort('is_archived')} style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-secondary)', textAlign: 'center', cursor: 'pointer', whiteSpace: 'nowrap' }}>Archive {sortColumn === 'is_archived' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                 <th style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Case Qty (In / Mstr)</th>
                 <th style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Actions</th>
               </tr>
