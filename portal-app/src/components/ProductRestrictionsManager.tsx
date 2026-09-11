@@ -198,6 +198,7 @@ export const ProductRestrictionsManager: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [viewArchived, setViewArchived] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState('');
 
   // Debounce search input
   useEffect(() => {
@@ -221,7 +222,7 @@ export const ProductRestrictionsManager: React.FC = () => {
 
   useEffect(() => {
     fetchProducts();
-  }, [debouncedQuery, page, viewArchived]);
+  }, [debouncedQuery, page, viewArchived, categoryFilter]);
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -230,6 +231,10 @@ export const ProductRestrictionsManager: React.FC = () => {
       .from('products')
       .select('sku, name, primary_category, override_category, sort_rank, allowed_provinces, allowed_countries, is_hidden, is_active, is_kit_only, inner_carton_qty, master_case_qty, is_archived', { count: 'exact' })
       .eq('is_archived', viewArchived);
+
+    if (categoryFilter) {
+      query = query.or(`primary_category.eq.${categoryFilter},override_category.eq.${categoryFilter}`);
+    }
 
     if (debouncedQuery) {
       query = query.or(`sku.ilike.%${debouncedQuery}%,name.ilike.%${debouncedQuery}%`);
@@ -708,6 +713,20 @@ export const ProductRestrictionsManager: React.FC = () => {
           >
             <option value="active">Active Catalog</option>
             <option value="archived">Archived Products</option>
+          </select>
+
+          <select
+            value={categoryFilter}
+            onChange={(e) => {
+              setCategoryFilter(e.target.value);
+              setPage(1);
+            }}
+            style={{ padding: '0.5rem 1rem', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '0.875rem', backgroundColor: 'white' }}
+          >
+            <option value="">All Categories</option>
+            {availableCategories.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
           </select>
         </div>
         
