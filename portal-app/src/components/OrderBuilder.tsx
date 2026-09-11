@@ -13,6 +13,9 @@ interface Product {
     price_distributor: number | null;
     primary_category: string | null;
     secondary_category: string | null;
+    override_category: string | null;
+    sort_rank: number;
+    is_kit: boolean;
     estimated_inventory: number;
     inventory_by_location: Record<string, number>;
     allowed_provinces: string[] | null;
@@ -476,11 +479,22 @@ export function OrderBuilder() {
 
     // Group products by primary category
     const groupedProducts = searchedProducts.reduce((acc, p) => {
-        const cat = p.primary_category || 'Uncategorized';
+        const cat = p.override_category || p.primary_category || 'Uncategorized';
         if (!acc[cat]) acc[cat] = [];
         acc[cat].push(p);
         return acc;
     }, {} as Record<string, Product[]>);
+
+    // Sort products within each category
+    Object.keys(groupedProducts).forEach(cat => {
+        groupedProducts[cat].sort((a, b) => {
+            if (a.is_kit !== b.is_kit) return a.is_kit ? 1 : -1; // non-kits first
+            const rankA = a.sort_rank || 0;
+            const rankB = b.sort_rank || 0;
+            if (rankA !== rankB) return rankA - rankB; // ascending rank
+            return a.sku.localeCompare(b.sku); // fallback sku
+        });
+    });
 
     if (isAuthorized === false) {
         return (

@@ -6,6 +6,8 @@ interface Product {
   sku: string;
   name: string;
   primary_category: string | null;
+  override_category: string | null;
+  sort_rank: number;
   allowed_provinces: string[] | null;
   allowed_countries: string[] | null;
   is_hidden: boolean;
@@ -17,6 +19,8 @@ interface Product {
 }
 
 interface EditState {
+  override_category: string;
+  sort_rank: string;
   provinces: string;
   countries: string;
   is_hidden: boolean;
@@ -57,7 +61,24 @@ const ProductRow = React.memo(({
           )}
         </div>
       </td>
-      <td style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{product.primary_category || 'N/A'}</td>
+      <td style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+        <div style={{ marginBottom: '0.25rem', fontSize: '0.75rem' }}>{product.primary_category || 'N/A'}</div>
+        <input
+          type="text"
+          value={edit.override_category}
+          onChange={(e) => onChange(product.sku, 'override_category', e.target.value)}
+          placeholder="Override Category"
+          style={{ width: '130px', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border-color)', fontSize: '0.875rem' }}
+        />
+      </td>
+      <td style={{ padding: '0.75rem 1rem' }}>
+        <input
+          type="number"
+          value={edit.sort_rank}
+          onChange={(e) => onChange(product.sku, 'sort_rank', e.target.value)}
+          style={{ width: '70px', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border-color)', fontSize: '0.875rem' }}
+        />
+      </td>
       <td style={{ padding: '0.75rem 1rem' }}>
         <input
           type="text"
@@ -190,7 +211,7 @@ export const ProductRestrictionsManager: React.FC = () => {
     
     let query = supabase
       .from('products')
-      .select('sku, name, primary_category, allowed_provinces, allowed_countries, is_hidden, is_active, is_kit_only, inner_carton_qty, master_case_qty, is_archived', { count: 'exact' })
+      .select('sku, name, primary_category, override_category, sort_rank, allowed_provinces, allowed_countries, is_hidden, is_active, is_kit_only, inner_carton_qty, master_case_qty, is_archived', { count: 'exact' })
       .eq('is_archived', viewArchived);
 
     if (debouncedQuery) {
@@ -217,6 +238,8 @@ export const ProductRestrictionsManager: React.FC = () => {
       const initialEdits: Record<string, EditState> = {};
       data.forEach(p => {
         initialEdits[p.sku] = {
+          override_category: p.override_category || '',
+          sort_rank: p.sort_rank !== undefined && p.sort_rank !== null ? p.sort_rank.toString() : '0',
           provinces: p.allowed_provinces ? p.allowed_provinces.join(', ') : '',
           countries: p.allowed_countries ? p.allowed_countries.join(', ') : '',
           is_hidden: p.is_hidden,
@@ -245,6 +268,8 @@ export const ProductRestrictionsManager: React.FC = () => {
     const edit = edits[sku];
     return {
       sku: sku,
+      override_category: edit.override_category.trim() || null,
+      sort_rank: parseInt(edit.sort_rank) || 0,
       allowed_provinces: edit.provinces.trim() ? edit.provinces.split(',').map(s => s.trim().toUpperCase()) : [],
       allowed_countries: edit.countries.trim() ? edit.countries.split(',').map(s => s.trim().toUpperCase()) : [],
       is_hidden: edit.is_hidden,
@@ -258,7 +283,9 @@ export const ProductRestrictionsManager: React.FC = () => {
   const isProductModified = useCallback((product: Product) => {
     const edit = edits[product.sku];
     if (!edit) return false;
-    return edit.provinces !== (product.allowed_provinces ? product.allowed_provinces.join(', ') : '') ||
+    return edit.override_category !== (product.override_category || '') ||
+           (parseInt(edit.sort_rank) || 0) !== (product.sort_rank || 0) ||
+           edit.provinces !== (product.allowed_provinces ? product.allowed_provinces.join(', ') : '') ||
            edit.countries !== (product.allowed_countries ? product.allowed_countries.join(', ') : '') ||
            edit.is_hidden !== product.is_hidden ||
            edit.is_kit_only !== product.is_kit_only ||
@@ -369,7 +396,7 @@ export const ProductRestrictionsManager: React.FC = () => {
     // Fetch all records for export
     const { data, error } = await supabase
       .from('products')
-      .select('sku, name, primary_category, allowed_provinces, allowed_countries, is_hidden, is_kit_only, inner_carton_qty, master_case_qty, is_archived, base_price, price_store, price_canco, price_distributor, inventory_by_location')
+      .select('sku, name, primary_category, override_category, sort_rank, allowed_provinces, allowed_countries, is_hidden, is_kit_only, inner_carton_qty, master_case_qty, is_archived, base_price, price_store, price_canco, price_distributor, inventory_by_location')
       .order('sku', { ascending: true });
       
     if (error || !data) {
@@ -387,7 +414,7 @@ export const ProductRestrictionsManager: React.FC = () => {
     });
     const warehouseList = Array.from(warehouses).sort();
 
-    const headers = ['SKU', 'Name', 'Category', 'Allowed Provinces', 'Allowed Countries', 'Kit Only', 'Hidden', 'Archived', 'Inner Carton Qty', 'Master Case Qty', 'MSRP', 'Store Price', 'Canco Price', 'Distributor Price'];
+    const headers = ['SKU', 'Name', 'Category', 'Override Category', 'Sort Rank', 'Allowed Provinces', 'Allowed Countries', 'Kit Only', 'Hidden', 'Archived', 'Inner Carton Qty', 'Master Case Qty', 'MSRP', 'Store Price', 'Canco Price', 'Distributor Price'];
     warehouseList.forEach(w => headers.push(`Inventory ${w}`));
     
     const escapeCsv = (str: any) => {
@@ -404,6 +431,8 @@ export const ProductRestrictionsManager: React.FC = () => {
         p.sku,
         p.name,
         p.primary_category || '',
+        p.override_category || '',
+        p.sort_rank || 0,
         (p.allowed_provinces || []).join(', '),
         (p.allowed_countries || []).join(', '),
         p.is_kit_only ? 'TRUE' : 'FALSE',
@@ -462,6 +491,8 @@ export const ProductRestrictionsManager: React.FC = () => {
       
       const headerRow = rows[0].map((h: string) => h.trim().toLowerCase());
       const skuIdx = headerRow.findIndex((h: string) => h === 'sku');
+      const overrideIdx = headerRow.findIndex((h: string) => h === 'override category');
+      const sortIdx = headerRow.findIndex((h: string) => h === 'sort rank');
       const provIdx = headerRow.findIndex((h: string) => h === 'allowed provinces');
       const countIdx = headerRow.findIndex((h: string) => h === 'allowed countries');
       const kitIdx = headerRow.findIndex((h: string) => h === 'kit only');
@@ -505,6 +536,8 @@ export const ProductRestrictionsManager: React.FC = () => {
         
         modifications.push({
           sku: sku,
+          override_category: overrideIdx !== -1 && row[overrideIdx]?.trim() ? row[overrideIdx].trim() : null,
+          sort_rank: getNum(sortIdx) || 0,
           allowed_provinces: getArr(provIdx),
           allowed_countries: getArr(countIdx),
           is_hidden: getBool(hideIdx, false),
@@ -695,7 +728,8 @@ export const ProductRestrictionsManager: React.FC = () => {
               <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
                 <th style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-secondary)' }}>SKU</th>
                 <th style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Product Name & Status</th>
-                <th style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Category</th>
+                <th style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Category Override</th>
+                <th style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Sort Rank</th>
                 <th style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Allowed Provinces</th>
                 <th style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Allowed Countries</th>
                 <th style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-secondary)', textAlign: 'center' }}>Kit Only</th>
@@ -710,7 +744,7 @@ export const ProductRestrictionsManager: React.FC = () => {
                 <ProductRow 
                   key={product.sku}
                   product={product}
-                  edit={edits[product.sku] || { provinces: '', countries: '', is_hidden: false, is_kit_only: false, inner_carton_qty: '', master_case_qty: '', is_archived: false }}
+                  edit={edits[product.sku] || { override_category: '', sort_rank: '0', provinces: '', countries: '', is_hidden: false, is_kit_only: false, inner_carton_qty: '', master_case_qty: '', is_archived: false }}
                   isModified={isProductModified(product)}
                   onChange={handleEditChange}
                   onSave={saveProduct}
