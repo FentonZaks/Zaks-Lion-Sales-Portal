@@ -21,12 +21,12 @@ export function CustomerProfile({ customerId }: { customerId: string }) {
             const { data: locData } = await supabase.from('customer_locations').select('*').eq('customer_id', customerId);
             const { data: contactData } = await supabase.from('customer_contacts').select('*').eq('customer_id', customerId);
             
-            // Check if strictly Admin (not Manager) to show the Draft Order button
+            // Check if strictly Admin (not Manager) or Jarvis to show the Draft Order button
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
                 const { data: roles } = await supabase.from('user_roles').select('roles(name)').eq('user_id', user.id);
                 const hasStrictAdminRole = roles?.some(r => (r.roles as any)?.name === 'ADMIN');
-                setIsAdmin(!!hasStrictAdminRole);
+                setIsAdmin(!!hasStrictAdminRole || user.email === 'jarvis@zaksfoods.ca');
             }
 
             setCustomer(custData);

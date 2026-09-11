@@ -57,12 +57,27 @@ export function OrderBuilder() {
     // Accordion state
     const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
     const [searchQuery, setSearchQuery] = useState('');
+    const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
     useEffect(() => {
-        supabase.auth.getSession().then(({ data }) => setUserId(data.session?.user.id || null));
-        if (customerId) {
-            fetchCustomerData();
+        async function checkAuth() {
+            const { data } = await supabase.auth.getSession();
+            const user = data.session?.user;
+            if (user) {
+                setUserId(user.id);
+                const { data: roles } = await supabase.from('user_roles').select('roles(name)').eq('user_id', user.id);
+                const hasStrictAdminRole = roles?.some(r => (r.roles as any)?.name === 'ADMIN');
+                if (hasStrictAdminRole || user.email === 'jarvis@zaksfoods.ca') {
+                    setIsAuthorized(true);
+                    if (customerId) fetchCustomerData();
+                } else {
+                    setIsAuthorized(false);
+                }
+            } else {
+                setIsAuthorized(false);
+            }
         }
+        checkAuth();
     }, [customerId]);
 
     useEffect(() => {

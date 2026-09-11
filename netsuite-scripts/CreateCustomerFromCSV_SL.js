@@ -77,20 +77,38 @@ function(serverWidget, record, file, log, redirect) {
                 });
 
                 // Standard Fields
-                custRec.setValue({ fieldId: 'companyname', value: parsedData['Customer Name'] || 'Unknown Company' });
+                var companyName = toTitleCase(parsedData['Customer Name'] || 'Unknown Company');
+                custRec.setValue({ fieldId: 'companyname', value: companyName });
                 custRec.setValue({ fieldId: 'subsidiary', value: 2 }); // Zaks Foods ULC
                 if (parsedData['Primary Email']) custRec.setValue({ fieldId: 'email', value: parsedData['Primary Email'] });
                 if (parsedData['Primary Phone']) custRec.setValue({ fieldId: 'phone', value: parsedData['Primary Phone'] });
                 
                 // Append Legal Name to Comments
                 if (parsedData['Legal Name']) {
-                    custRec.setValue({ fieldId: 'comments', value: 'Legal Name: ' + parsedData['Legal Name'] });
+                    var legalName = toTitleCase(parsedData['Legal Name']);
+                    custRec.setValue({ fieldId: 'comments', value: 'Legal Name: ' + legalName });
                 }
 
                 // Custom Fields
                 if (parsedData['Banner']) custRec.setValue({ fieldId: 'custentity2', value: parsedData['Banner'].trim() });
                 if (parsedData['Channel']) custRec.setValue({ fieldId: 'custentity5', value: parsedData['Channel'].trim() });
                 if (parsedData['AP Email']) custRec.setValue({ fieldId: 'custentity_atlas_customer_invoice_email', value: parsedData['AP Email'] });
+                
+                // Map and set Price Level
+                if (parsedData['Price Level']) {
+                    var priceLevelId = mapPriceLevel(parsedData['Price Level']);
+                    if (priceLevelId) {
+                        custRec.setValue({ fieldId: 'pricelevel', value: priceLevelId });
+                    }
+                }
+                
+                // Map and set Sales Rep
+                if (parsedData['Sales Rep']) {
+                    var salesRepId = mapSalesRep(parsedData['Sales Rep']);
+                    if (salesRepId) {
+                        custRec.setValue({ fieldId: 'salesrep', value: salesRepId });
+                    }
+                }
                 
                 // Address Book
                 if (parsedData['Shipping Address']) {
@@ -107,7 +125,7 @@ function(serverWidget, record, file, log, redirect) {
                     if (parsedData['Shipping Address']) addressSubrecord.setValue({ fieldId: 'addr1', value: parsedData['Shipping Address'] });
                     if (parsedData['City']) addressSubrecord.setValue({ fieldId: 'city', value: parsedData['City'] });
                     if (parsedData['Province']) addressSubrecord.setValue({ fieldId: 'state', value: normalizeProvince(parsedData['Province']) });
-                    if (parsedData['Postal Code']) addressSubrecord.setValue({ fieldId: 'zip', value: parsedData['Postal Code'] });
+                    if (parsedData['Postal Code']) addressSubrecord.setValue({ fieldId: 'zip', value: formatPostalCode(parsedData['Postal Code']) });
                     
                     custRec.commitLine({ sublistId: 'addressbook' });
                 }
@@ -143,6 +161,21 @@ function(serverWidget, record, file, log, redirect) {
             contactRec.save();
         } catch (e) {
             log.error('Error creating contact', e);
+            
+            // If NetSuite blocked it due to duplicate name/email, force uniqueness and retry
+            try {
+                var retryRec = record.create({ type: record.Type.CONTACT, isDynamic: true });
+                retryRec.setValue({ fieldId: 'company', value: customerId });
+                retryRec.setValue({ fieldId: 'firstname', value: firstName || 'N/A' });
+                var forcedLastName = (lastName || 'N/A') + ' (' + title + ')';
+                retryRec.setValue({ fieldId: 'lastname', value: forcedLastName });
+                retryRec.setValue({ fieldId: 'email', value: email || '' });
+                retryRec.setValue({ fieldId: 'phone', value: phone || '' });
+                retryRec.setValue({ fieldId: 'title', value: title });
+                retryRec.save();
+            } catch (e2) {
+                log.error('Error creating contact on retry', e2);
+            }
         }
     }
 
@@ -168,6 +201,66 @@ function(serverWidget, record, file, log, redirect) {
             'YUKON': 'YT'
         };
         return map[p] || p;
+    }
+
+    function toTitleCase(str) {
+        if (!str) return str;
+        return str.toLowerCase().split(' ').map(function(word) {
+            return word.charAt(0).toUpperCase() + word.slice(1);
+        }).join(' ');
+    }
+
+    function formatPostalCode(str) {
+        if (!str) return str;
+        // Remove all non-alphanumeric characters, convert to uppercase
+        var cleaned = str.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+        
+        // If it's a standard 6-character Canadian postal code, format it as A1A 1A1
+        if (cleaned.length === 6) {
+            return cleaned.substring(0, 3) + ' ' + cleaned.substring(3);
+        }
+        
+        // Otherwise, just return the uppercase string as fallback
+        return cleaned;
+    }
+
+    function mapPriceLevel(name) {
+        if (!name) return null;
+        var n = name.trim().toLowerCase();
+        var map = {
+            'retail': 1,
+            'store': 2,
+            'distributor': 3,
+            'masterdist': 4,
+            'online price': 5,
+            'ctire': 8,
+            'pafinefoods': 9,
+            'otherdist': 10,
+            'fitc': 11,
+            'wholesale': 14,
+            'canco price': 18
+        };
+        return map[n] || null;
+    }
+
+    function mapSalesRep(name) {
+        if (!name) return null;
+        var n = name.trim().toLowerCase();
+        var map = {
+            'tait fazio': -5,
+            'ryan sweeney': 2936,
+            'landon king': 2941,
+            'rickie hollait': 2942,
+            'chris adams': 2943,
+            'up next sales': 2946,
+            'zaks house account': 2947,
+            'lion house account': 2948,
+            'walgreen rep': 2949,
+            'michael delegans': 4372,
+            'timothy simpson': 4664,
+            'jarvis': 5410
+        };
+        return map[n] || null;
     }
 
     return {

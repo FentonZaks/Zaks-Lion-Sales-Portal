@@ -6,3 +6,6 @@ When extracting customer data from NetSuite, always ensure the script filters fo
 
 # NetSuite Tooling
 The user has the Tim Dietrich SuiteQL Query Tool installed in their NetSuite environment. When they request complex NetSuite data extraction, you can provide SuiteQL queries for them to easily run via this tool.
+
+# NetSuite Secrets Management
+NEVER hardcode API keys or secrets (like the Supabase Service Key) directly into NetSuite SuiteScripts. Always use NetSuite Script Parameters (`custscript_...`) via `N/runtime` to dynamically pull the keys securely from the Script Deployment record at runtime.
