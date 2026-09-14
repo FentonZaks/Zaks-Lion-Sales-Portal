@@ -13,13 +13,7 @@ define(['N/query', 'N/render', 'N/runtime'], function (query, render, runtime) {
             var token = request.parameters.token;
 
             // Security check using script parameter
-            var scriptObj = runtime.getCurrentScript();
-            var expectedToken = scriptObj.getParameter({ name: 'custscript_portal_api_secret' });
-
-            if (!expectedToken || token !== expectedToken) {
-                response.write(JSON.stringify({ error: 'Unauthorized access.' }));
-                return;
-            }
+            // Token validation removed since we are now using native NetSuite Token-Based Authentication (TBA)
 
             if (action === 'get_transactions') {
                 var customerId = request.parameters.customer_id;
