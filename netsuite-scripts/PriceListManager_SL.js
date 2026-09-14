@@ -24,18 +24,22 @@ function(serverWidget, record, file, log, search, task, url) {
         { id: 14, name: 'Wholesale' },
         { id: 18, name: 'Canco Price' }
     ];
-    var CURRENCY_CAD = 1; // Assuming 1 is CAD. Adjust if needed.
+    var CURRENCY_CAD = 1; // Assuming 1 is CAD
+    var CURRENCY_USD = 2; // Assuming 2 is USD
 
     function onRequest(context) {
         if (context.request.method === 'GET') {
             var action = context.request.parameters.action;
 
-            if (action === 'download') {
-                return generateCsvResponse(context.response);
+            if (action === 'download_cad') {
+                return generateCsvResponse(context.response, CURRENCY_CAD);
+            }
+            if (action === 'download_usd') {
+                return generateCsvResponse(context.response, CURRENCY_USD);
             }
 
             var form = serverWidget.createForm({
-                title: 'Sales Portal: CAD Price List Manager'
+                title: 'Sales Portal: Price List Manager'
             });
 
             // Help Text
@@ -47,20 +51,28 @@ function(serverWidget, record, file, log, search, task, url) {
 
             var scriptId = context.request.parameters.script;
             var deployId = context.request.parameters.deploy;
-            var downloadUrl = '';
+            var downloadCadUrl = '';
+            var downloadUsdUrl = '';
             if (scriptId && deployId) {
-                downloadUrl = url.resolveScript({
-                    scriptId: scriptId,
-                    deploymentId: deployId,
-                    params: { action: 'download' }
-                });
+                downloadCadUrl = url.resolveScript({ scriptId: scriptId, deploymentId: deployId, params: { action: 'download_cad' } });
+                downloadUsdUrl = url.resolveScript({ scriptId: scriptId, deploymentId: deployId, params: { action: 'download_usd' } });
             }
 
             helpField.defaultValue = '<div style="font-size:14px; margin-bottom: 20px;">' +
                 '<b>Download Prices:</b><br/>' +
-                '<a href="' + downloadUrl + '" style="padding: 6px 16px; background-color: #005587; color: white; text-decoration: none; border-radius: 3px; display: inline-block; margin-top: 8px; margin-bottom: 20px; font-weight: bold;">⬇ Download Current CAD Prices (CSV)</a><br/><br/>' +
-                '<b>Upload Prices:</b> Upload a modified CSV. The system will match by SKU and update the NetSuite pricing for the columns provided.' +
+                '<a href="' + downloadCadUrl + '" style="padding: 6px 16px; background-color: #005587; color: white; text-decoration: none; border-radius: 3px; display: inline-block; margin-top: 8px; margin-bottom: 8px; font-weight: bold;">\u2B07 Download CAD Prices (CSV)</a><br/>' +
+                '<a href="' + downloadUsdUrl + '" style="padding: 6px 16px; background-color: #2e7d32; color: white; text-decoration: none; border-radius: 3px; display: inline-block; margin-bottom: 20px; font-weight: bold;">\u2B07 Download USD Prices (CSV)</a><br/><br/>' +
+                '<b>Upload Prices:</b> Select the currency below, then upload a modified CSV.' +
                 '</div>';
+
+            var currencyField = form.addField({
+                id: 'custpage_currency',
+                type: serverWidget.FieldType.SELECT,
+                label: 'Currency to Update'
+            });
+            currencyField.addSelectOption({ value: '1', text: 'CAD' });
+            currencyField.addSelectOption({ value: '2', text: 'USD' });
+            currencyField.isMandatory = true;
 
             form.addField({
                 id: 'custpage_csv_file',
@@ -74,11 +86,12 @@ function(serverWidget, record, file, log, search, task, url) {
 
             context.response.writePage(form);
             return;
-        }
-
-        if (context.request.method === 'POST') {
+        } else {
+            // POST block
             try {
                 var fileObj = context.request.files.custpage_csv_file;
+                var selectedCurrency = parseInt(context.request.parameters.custpage_currency) || CURRENCY_CAD;
+                
                 if (!fileObj) {
                     throw new Error("No file uploaded.");
                 }
@@ -135,7 +148,7 @@ function(serverWidget, record, file, log, search, task, url) {
                         var itemRec = record.load({ type: recType, id: internalId, isDynamic: true });
                         var priceChanged = false;
 
-                        var currencySublistId = 'price' + CURRENCY_CAD; 
+                        var currencySublistId = 'price' + selectedCurrency; 
                         var sublistToUse = 'price';
                         var sublistNames = itemRec.getSublists();
                         if (sublistNames.indexOf(currencySublistId) !== -1) {
@@ -216,7 +229,8 @@ function(serverWidget, record, file, log, search, task, url) {
         }
     }
 
-    function generateCsvResponse(response) {
+    function generateCsvResponse(response, currencyId) {
+        var currencyName = currencyId === CURRENCY_USD ? 'USD' : 'CAD';
         var csvHeaders = ['Internal ID', 'Record Type', 'SKU', 'Description'];
         PRICE_LEVELS.forEach(function(pl) { csvHeaders.push(pl.name); });
         
@@ -230,7 +244,7 @@ function(serverWidget, record, file, log, search, task, url) {
             filters: [
                 ['isinactive', 'is', 'F'],
                 'AND',
-                ['pricing.currency', 'anyof', CURRENCY_CAD]
+                ['pricing.currency', 'anyof', currencyId]
             ],
             columns: [
                 search.createColumn({ name: 'internalid' }),
@@ -288,7 +302,7 @@ function(serverWidget, record, file, log, search, task, url) {
         var csvString = csvHeaders.join(',') + '\n' + csvRows.join('\n');
 
         response.setHeader({ name: 'Content-Type', value: 'text/csv' });
-        response.setHeader({ name: 'Content-Disposition', value: 'attachment; filename="CAD_PriceList_Export.csv"' });
+        response.setHeader({ name: 'Content-Disposition', value: 'attachment; filename="' + currencyName + '_PriceList_Export.csv"' });
         response.write(csvString);
     }
 
