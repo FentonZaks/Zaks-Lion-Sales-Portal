@@ -7,8 +7,8 @@
  * and allows uploading a CSV to bulk update item pricing.
  */
 
-define(['N/ui/serverWidget', 'N/record', 'N/file', 'N/log', 'N/search', 'N/task'], 
-function(serverWidget, record, file, log, search, task) {
+define(['N/ui/serverWidget', 'N/record', 'N/file', 'N/log', 'N/search', 'N/task', 'N/url'], 
+function(serverWidget, record, file, log, search, task, url) {
 
     // Common Price Levels for mapping
     var PRICE_LEVELS = [
@@ -44,17 +44,23 @@ function(serverWidget, record, file, log, search, task) {
                 type: serverWidget.FieldType.INLINEHTML,
                 label: ' '
             });
+
+            var scriptId = context.request.parameters.script;
+            var deployId = context.request.parameters.deploy;
+            var downloadUrl = '';
+            if (scriptId && deployId) {
+                downloadUrl = url.resolveScript({
+                    scriptId: scriptId,
+                    deploymentId: deployId,
+                    params: { action: 'download' }
+                });
+            }
+
             helpField.defaultValue = '<div style="font-size:14px; margin-bottom: 20px;">' +
-                '<b>Download Prices:</b> Click the button below to extract a CSV of all active items and their current CAD prices.<br/>' +
+                '<b>Download Prices:</b><br/>' +
+                '<a href="' + downloadUrl + '" style="padding: 6px 16px; background-color: #005587; color: white; text-decoration: none; border-radius: 3px; display: inline-block; margin-top: 8px; margin-bottom: 20px; font-weight: bold;">⬇ Download Current CAD Prices (CSV)</a><br/><br/>' +
                 '<b>Upload Prices:</b> Upload a modified CSV. The system will match by SKU and update the NetSuite pricing for the columns provided.' +
                 '</div>';
-
-            // Download Button (opens the Suitelet with action=download)
-            form.addButton({
-                id: 'custpage_btn_download',
-                label: 'Download Current CAD Prices (CSV)',
-                functionName: 'window.location.href = window.location.href + "&action=download";'
-            });
 
             form.addField({
                 id: 'custpage_csv_file',
