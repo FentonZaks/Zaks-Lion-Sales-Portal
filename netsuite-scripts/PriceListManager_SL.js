@@ -202,9 +202,7 @@ function(serverWidget, record, file, log, search, task, url) {
             filters: [
                 ['isinactive', 'is', 'F'],
                 'AND',
-                ['pricing.currency', 'anyof', CURRENCY_CAD],
-                'AND',
-                ['pricing.minimumquantity', 'equalto', 0] // Base tier only
+                ['pricing.currency', 'anyof', CURRENCY_CAD]
             ],
             columns: [
                 search.createColumn({ name: 'itemid' }),
