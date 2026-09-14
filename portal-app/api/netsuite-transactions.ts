@@ -1,3 +1,16 @@
+import OAuth from 'oauth-1.0a';
+import crypto from 'crypto';
+
+export const config = {
+  api: {
+    responseLimit: false,
+  },
+};
+
+function hash_function_sha256(base_string: string, key: string) {
+    return crypto.createHmac('sha256', key).update(base_string).digest('base64');
+}
+
 export default async function handler(req: any, res: any) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -11,27 +24,56 @@ export default async function handler(req: any, res: any) {
     }
 
     const suiteletUrl = process.env.NETSUITE_TRANSACTIONS_URL;
-    const secret = process.env.NETSUITE_PORTAL_API_SECRET;
+    
+    // We are switching to OAuth 1.0a (TBA)
+    const consumerKey = process.env.NETSUITE_CONSUMER_KEY;
+    const consumerSecret = process.env.NETSUITE_CONSUMER_SECRET;
+    const tokenId = process.env.NETSUITE_TOKEN_ID;
+    const tokenSecret = process.env.NETSUITE_TOKEN_SECRET;
+    const accountId = process.env.NETSUITE_ACCOUNT_ID;
 
-    if (!suiteletUrl || !secret) {
-      console.error("Missing NetSuite environment variables.");
-      return res.status(500).json({ error: 'Server configuration error' });
+    if (!suiteletUrl || !consumerKey || !tokenId || !accountId) {
+      console.error("Missing NetSuite TBA environment variables.");
+      return res.status(500).json({ error: 'Server configuration error: Missing TBA keys.' });
     }
 
-    let url = `${suiteletUrl}&action=${encodeURIComponent(action)}&token=${encodeURIComponent(secret)}`;
+    // Clean up the URL by removing ns-at if it exists
+    let cleanUrl = suiteletUrl.split('&ns-at=')[0];
+    cleanUrl = `${cleanUrl}&action=${encodeURIComponent(action)}`;
     
     if (action === 'get_transactions') {
         if (!customerId) return res.status(400).json({ error: 'Missing customerId' });
-        url += `&customer_id=${encodeURIComponent(customerId)}`;
+        cleanUrl += `&customer_id=${encodeURIComponent(customerId)}`;
     } else if (action === 'get_pdf') {
         if (!transactionId) return res.status(400).json({ error: 'Missing transactionId' });
-        url += `&transaction_id=${encodeURIComponent(transactionId)}`;
+        cleanUrl += `&transaction_id=${encodeURIComponent(transactionId)}`;
     } else {
         return res.status(400).json({ error: 'Invalid action' });
     }
 
-    const nsResponse = await fetch(url, {
+    const oauth = new OAuth({
+        consumer: { key: consumerKey, secret: consumerSecret! },
+        signature_method: 'HMAC-SHA256',
+        hash_function: hash_function_sha256,
+        realm: accountId
+    });
+
+    const token = {
+        key: tokenId,
+        secret: tokenSecret!
+    };
+
+    const request_data = {
+        url: cleanUrl,
         method: 'GET'
+    };
+
+    const headers = oauth.toHeader(oauth.authorize(request_data, token)) as any;
+    headers['Content-Type'] = 'application/json';
+
+    const nsResponse = await fetch(cleanUrl, {
+        method: 'GET',
+        headers: headers
     });
 
     if (!nsResponse.ok) {
