@@ -189,11 +189,11 @@ function(serverWidget, record, file, log, search, task, url) {
     }
 
     function generateCsvResponse(response) {
-        var csvHeaders = ['SKU'];
+        var csvHeaders = ['SKU', 'Description'];
         PRICE_LEVELS.forEach(function(pl) { csvHeaders.push(pl.name); });
         
         var csvRows = [];
-        var skuDataMap = {}; // { 'ITEM1': { 1: 10.50, 2: 12.00 } }
+        var skuDataMap = {}; // { 'ITEM1': { description: 'Desc', 1: 10.50, 2: 12.00 } }
 
         // Note: SuiteScript search on 'pricing' is sometimes limited.
         // A robust way to extract all prices is searching item, and retrieving the 'pricing' join.
@@ -206,6 +206,8 @@ function(serverWidget, record, file, log, search, task, url) {
             ],
             columns: [
                 search.createColumn({ name: 'itemid' }),
+                search.createColumn({ name: 'displayname' }),
+                search.createColumn({ name: 'salesdescription' }),
                 search.createColumn({ name: 'pricelevel', join: 'pricing' }),
                 search.createColumn({ name: 'unitprice', join: 'pricing' })
             ]
@@ -217,17 +219,18 @@ function(serverWidget, record, file, log, search, task, url) {
             var page = pagedData.fetch({ index: pageRange.index });
             page.data.forEach(function(result) {
                 var sku = result.getValue({ name: 'itemid' });
+                var desc = result.getValue({ name: 'salesdescription' }) || result.getValue({ name: 'displayname' }) || '';
                 var pl = result.getValue({ name: 'pricelevel', join: 'pricing' });
                 var price = result.getValue({ name: 'unitprice', join: 'pricing' });
 
-                if (!skuDataMap[sku]) skuDataMap[sku] = {};
+                if (!skuDataMap[sku]) skuDataMap[sku] = { description: desc };
                 skuDataMap[sku][pl] = price;
             });
         });
 
         // Build CSV string
         Object.keys(skuDataMap).forEach(function(sku) {
-            var row = ['"' + sku.replace(/"/g, '""') + '"'];
+            var row = ['"' + sku.replace(/"/g, '""') + '"', '"' + skuDataMap[sku].description.replace(/"/g, '""') + '"'];
             PRICE_LEVELS.forEach(function(pl) {
                 var price = skuDataMap[sku][pl.id] || '';
                 row.push(price);
