@@ -125,7 +125,7 @@ function(serverWidget, record, file, log, search, task, url) {
                     // Find internal ID and Record Type for the SKU
                     var itemData = findItemBySku(sku);
                     if (!itemData || !itemData.id) {
-                        log.error('Item Not Found', sku);
+                        errors.push(sku + ': Item Not Found in NetSuite (Check spelling/spaces).');
                         continue;
                     }
 
@@ -141,6 +141,7 @@ function(serverWidget, record, file, log, search, task, url) {
                         } else if (sublistNames.indexOf('price') !== -1) {
                             sublistToUse = 'price';
                         } else {
+                            errors.push(sku + ': Item has no pricing sublist configured.');
                             continue; // No pricing sublist found
                         }
 
