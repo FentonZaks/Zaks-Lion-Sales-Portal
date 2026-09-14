@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { supabase } from '../supabaseClient';
 
 interface Transaction {
     id: string;
@@ -28,7 +29,15 @@ export function CustomerTransactions({ netSuiteId }: { netSuiteId: string }) {
             setLoading(true);
             setError(null);
             try {
-                const res = await fetch(`/api/netsuite-transactions?action=get_transactions&customerId=${netSuiteId}`);
+                const { data: { session } } = await supabase.auth.getSession();
+                const token = session?.access_token;
+                if (!token) throw new Error('Not authenticated');
+
+                const res = await fetch(`/api/netsuite-transactions?action=get_transactions&customerId=${netSuiteId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
                 if (!res.ok) {
                     throw new Error('Failed to load transactions.');
                 }
@@ -46,6 +55,32 @@ export function CustomerTransactions({ netSuiteId }: { netSuiteId: string }) {
 
         fetchTransactions();
     }, [netSuiteId]);
+
+    const handleViewPdf = async (transactionId: string) => {
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+            if (!token) throw new Error('Not authenticated');
+
+            const res = await fetch(`/api/netsuite-transactions?action=get_pdf&transactionId=${transactionId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (!res.ok) {
+                const errData = await res.json();
+                console.error("PDF Error:", errData);
+                alert("Could not load PDF: " + (errData.error || res.statusText));
+                return;
+            }
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            window.open(url, '_blank');
+        } catch (err: any) {
+            console.error("View PDF Error:", err);
+            alert("An error occurred while opening the PDF.");
+        }
+    };
 
     const formatCurrency = (val: number) => {
         return `$${val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -85,14 +120,12 @@ export function CustomerTransactions({ netSuiteId }: { netSuiteId: string }) {
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                                     <div style={{ fontWeight: 'bold' }}>{formatCurrency(so.total)}</div>
-                                    <a 
-                                        href={`/api/netsuite-transactions?action=get_pdf&transactionId=${so.id}`} 
-                                        target="_blank" 
-                                        rel="noreferrer"
-                                        style={{ background: 'var(--accent-color)', color: '#fff', padding: '4px 10px', borderRadius: '4px', textDecoration: 'none', fontSize: '0.8rem' }}
+                                    <button 
+                                        onClick={() => handleViewPdf(so.id)}
+                                        style={{ background: 'var(--accent-color)', color: '#fff', padding: '4px 10px', borderRadius: '4px', border: 'none', cursor: 'pointer', fontSize: '0.8rem' }}
                                     >
                                         View PDF
-                                    </a>
+                                    </button>
                                 </div>
                             </div>
                         ))}
@@ -117,14 +150,12 @@ export function CustomerTransactions({ netSuiteId }: { netSuiteId: string }) {
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                                     <div style={{ fontWeight: 'bold' }}>{formatCurrency(inv.total)}</div>
-                                    <a 
-                                        href={`/api/netsuite-transactions?action=get_pdf&transactionId=${inv.id}`} 
-                                        target="_blank" 
-                                        rel="noreferrer"
-                                        style={{ background: 'var(--accent-color)', color: '#fff', padding: '4px 10px', borderRadius: '4px', textDecoration: 'none', fontSize: '0.8rem' }}
+                                    <button 
+                                        onClick={() => handleViewPdf(inv.id)}
+                                        style={{ background: 'var(--accent-color)', color: '#fff', padding: '4px 10px', borderRadius: '4px', border: 'none', cursor: 'pointer', fontSize: '0.8rem' }}
                                     >
                                         View PDF
-                                    </a>
+                                    </button>
                                 </div>
                             </div>
                         ))}

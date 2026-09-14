@@ -1,5 +1,6 @@
 import OAuth from 'oauth-1.0a';
 import crypto from 'crypto';
+import { createClient } from '@supabase/supabase-js';
 
 export const config = {
   api: {
@@ -17,6 +18,23 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
+    // 1. Verify Supabase Authentication
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: 'Missing Authorization header' });
+    }
+    const token = authHeader.replace('Bearer ', '');
+    
+    const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
+    const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || '';
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+      return res.status(401).json({ error: 'Unauthorized. Invalid or expired token.' });
+    }
+
+    // 2. Process Request
     const { action, customerId, transactionId } = req.query;
 
     if (!action) {
