@@ -420,6 +420,22 @@ export function OrderBuilder() {
             const pdfBase64 = await generatePDFBase64();
             const csvBase64 = generateCSV();
 
+            // 1b. Upload PDF to Supabase Storage
+            let attachmentPath = null;
+            try {
+                const res = await fetch(pdfBase64);
+                const pdfBlob = await res.blob();
+                const fileName = `${customerId}/draft_${Date.now()}.pdf`;
+                const { data: uploadData, error: uploadError } = await supabase.storage.from('draft-orders').upload(fileName, pdfBlob, { contentType: 'application/pdf' });
+                if (uploadError) {
+                    console.error("Failed to upload PDF:", uploadError);
+                } else if (uploadData) {
+                    attachmentPath = uploadData.path;
+                }
+            } catch (e) {
+                console.error("Exception during PDF upload:", e);
+            }
+
             // 2. Email it via our API
             const emailRes = await fetch('/api/send-draft-order', {
                 method: 'POST',
@@ -459,6 +475,17 @@ export function OrderBuilder() {
 
             const { error: lineError } = await supabase.from('order_lines').insert(lines);
             if (lineError) throw lineError;
+
+            // 4. Log Activity
+            const { error: activityError } = await supabase.from('activities').insert({
+                customer_id: customerId,
+                user_id: userId,
+                activity_type: 'DRAFT_ORDER',
+                subject: 'Draft Order Generated',
+                notes: `Draft order generated and emailed for $${subtotal.toFixed(2)}.`,
+                attachment_url: attachmentPath
+            });
+            if (activityError) console.error("Failed to log activity:", activityError);
 
             alert('Draft Order successfully submitted and emailed!');
             navigate(`/customers/${customerId}`);

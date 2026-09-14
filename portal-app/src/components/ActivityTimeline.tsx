@@ -22,6 +22,16 @@ export function ActivityTimeline({ customerId }: { customerId: string }) {
         fetchActivities();
     }, [customerId]);
 
+    async function handleViewPdf(path: string) {
+        const { data, error } = await supabase.storage.from('draft-orders').createSignedUrl(path, 3600);
+        if (error) {
+            alert('Could not load PDF');
+            console.error(error);
+        } else if (data) {
+            window.open(data.signedUrl, '_blank');
+        }
+    }
+
     return (
         <div className="card" style={{ marginTop: '1.5rem' }}>
             <h2 className="heading">Activity Timeline</h2>
@@ -44,6 +54,23 @@ export function ActivityTimeline({ customerId }: { customerId: string }) {
                                 <p style={{ marginTop: '0.5rem', color: 'var(--text-secondary)' }}>
                                     {activity.notes}
                                 </p>
+                            )}
+                            {activity.attachment_url && (
+                                <button 
+                                    onClick={() => handleViewPdf(activity.attachment_url)}
+                                    style={{
+                                        marginTop: '0.5rem',
+                                        padding: '4px 12px',
+                                        background: 'var(--accent-color)',
+                                        color: '#fff',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        cursor: 'pointer',
+                                        fontSize: '0.85rem'
+                                    }}
+                                >
+                                    📄 View Draft PDF
+                                </button>
                             )}
                         </div>
                     ))}
