@@ -46,6 +46,7 @@ interface Visitor {
     visits: number;
     calls: number;
     completedFollowUps: number;
+    drafts: number;
     portalMtd: number;
 }
 
@@ -154,9 +155,7 @@ export function ManagerDashboard() {
                 (orders || []).forEach((o: Order) => {
                     const cust = customerMap[o.customer_id];
                     if (!cust || !cust.salesrep) return;
-                    // only include orders created this month (already filtered by created_at)
-                    // we consider any status except DRAFT as revenue – adjust if needed
-                    if (['DRAFT'].includes(o.status)) return;
+                    // Draft orders are included in Portal MTD per user request
                     repPortalTotals[cust.salesrep] = (repPortalTotals[cust.salesrep] || 0) + (o.subtotal || 0);
                 });
 
@@ -183,7 +182,7 @@ export function ManagerDashboard() {
                 // First, compute portal MTD per user (all orders they created this month)
                 const userPortalTotals: Record<string, number> = {};
                 (orders || []).forEach((o: Order) => {
-                    if (['DRAFT'].includes(o.status)) return;
+                    // Draft orders are included in user Portal MTD
                     userPortalTotals[o.user_id] = (userPortalTotals[o.user_id] || 0) + (o.subtotal || 0);
                 });
 
@@ -201,6 +200,7 @@ export function ManagerDashboard() {
                             visits: 0,
                             calls: 0,
                             completedFollowUps: 0,
+                            drafts: 0,
                             portalMtd: userPortalTotals[userId] || 0
                         };
                     }
@@ -210,6 +210,8 @@ export function ManagerDashboard() {
                         visitorMap[visitorKey].calls += 1;
                     } else if (a.activity_type === 'NOTE') {
                         visitorMap[visitorKey].completedFollowUps += 1;
+                    } else if (a.activity_type === 'DRAFT_ORDER') {
+                        visitorMap[visitorKey].drafts += 1;
                     }
                 });
 
@@ -275,6 +277,7 @@ export function ManagerDashboard() {
     const globalVisits = repGroups.reduce((sum, g) => sum + g.visitors.reduce((v, u) => v + u.visits, 0), 0);
     const globalCalls = repGroups.reduce((sum, g) => sum + g.visitors.reduce((v, u) => v + u.calls, 0), 0);
     const globalFollowUps = repGroups.reduce((sum, g) => sum + g.visitors.reduce((v, u) => v + u.completedFollowUps, 0), 0);
+    const globalDrafts = repGroups.reduce((sum, g) => sum + g.visitors.reduce((v, u) => v + u.drafts, 0), 0);
 
     return (
         <div className="card" style={{ marginTop: '1.5rem' }}>
@@ -303,7 +306,7 @@ export function ManagerDashboard() {
                 </div>
             </div>
             
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
                 {/* Portal MTD */}
                 <div style={{ padding: '1.5rem 1rem', background: 'var(--bg-color)', borderRadius: '8px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
                     <div style={{ fontSize: '1.75rem', fontWeight: 'bold', color: 'var(--primary-color)' }}>{formatCurrency(globalPortalMtd)}</div>
@@ -324,10 +327,15 @@ export function ManagerDashboard() {
                     <div style={{ fontSize: '1.75rem', fontWeight: 'bold', color: 'var(--primary-color)' }}>{globalCalls}</div>
                     <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.5rem' }}>Phone Calls</div>
                 </div>
+                {/* Draft Orders */}
+                <div style={{ padding: '1.5rem 1rem', background: 'var(--bg-color)', borderRadius: '8px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.75rem', fontWeight: 'bold', color: 'var(--primary-color)' }}>{globalDrafts}</div>
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.5rem' }}>Draft Orders</div>
+                </div>
                 {/* Completed Follow Ups */}
                 <div style={{ padding: '1.5rem 1rem', background: 'var(--bg-color)', borderRadius: '8px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
                     <div style={{ fontSize: '1.75rem', fontWeight: 'bold', color: 'var(--primary-color)' }}>{globalFollowUps}</div>
-                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.5rem' }}>Follow-ups Completed</div>
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.5rem' }}>Follow-ups</div>
                 </div>
             </div>
 
@@ -351,9 +359,10 @@ export function ManagerDashboard() {
                             </div>
                             {/* Visitor sub‑header */}
                             {rep.visitors.length > 0 && (
-                                <div style={{ padding: '0.5rem 1rem', display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', background: 'var(--bg-color)', opacity: 0.7, marginLeft: '1rem', fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: '600' }}>
+                                <div style={{ padding: '0.5rem 1rem', display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr', background: 'var(--bg-color)', opacity: 0.7, marginLeft: '1rem', fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: '600' }}>
                                     <div>User</div>
                                     <div style={{ textAlign: 'right' }}>Portal Sales</div>
+                                    <div style={{ textAlign: 'right' }}>Drafts</div>
                                     <div style={{ textAlign: 'right' }}>Visits</div>
                                     <div style={{ textAlign: 'right' }}>Calls</div>
                                     <div style={{ textAlign: 'right' }}>Follow-ups</div>
@@ -361,9 +370,10 @@ export function ManagerDashboard() {
                             )}
                             {/* Visitor rows */}
                             {rep.visitors.map(v => (
-                                <div key={v.id} style={{ padding: '0.75rem 1rem', display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', background: 'var(--bg-color)', opacity: 0.85, marginLeft: '1rem', borderTop: '1px solid var(--border-color)' }}>
+                                <div key={v.id} style={{ padding: '0.75rem 1rem', display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr', background: 'var(--bg-color)', opacity: 0.85, marginLeft: '1rem', borderTop: '1px solid var(--border-color)' }}>
                                     <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{v.name}</div>
                                     <div style={{ textAlign: 'right', fontSize: '0.85rem' }}>{formatCurrency(v.portalMtd)}</div>
+                                    <div style={{ textAlign: 'right', fontSize: '0.85rem' }}>{v.drafts}</div>
                                     <div style={{ textAlign: 'right', fontSize: '0.85rem' }}>{v.visits}</div>
                                     <div style={{ textAlign: 'right', fontSize: '0.85rem' }}>{v.calls}</div>
                                     <div style={{ textAlign: 'right', fontSize: '0.85rem' }}>{v.completedFollowUps}</div>
