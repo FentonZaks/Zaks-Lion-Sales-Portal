@@ -91,8 +91,13 @@ function(serverWidget, record, file, log, search, task, url) {
 
                 // Parse Headers
                 var headers = lines[0].replace(/\uFEFF/g, '').split(',').map(function(h) { return h.replace(/^"|"$/g, '').trim(); });
+                var idIdx = headers.indexOf('Internal ID');
+                var typeIdx = headers.indexOf('Record Type');
                 var skuIdx = headers.indexOf('SKU');
-                if (skuIdx === -1) throw new Error("CSV must contain a 'SKU' column.");
+                
+                if (idIdx === -1 || typeIdx === -1) {
+                    throw new Error("CSV must contain 'Internal ID' and 'Record Type' columns for fast processing. Please download a new CSV.");
+                }
 
                 // Map header names to Price Level IDs
                 var headerToPriceLevelMap = {};
@@ -119,18 +124,14 @@ function(serverWidget, record, file, log, search, task, url) {
                         parts[j] = parts[j].replace(/^"|"$/g, '').trim();
                     }
 
-                    var sku = parts[skuIdx];
-                    if (!sku) continue;
+                    var internalId = parts[idIdx];
+                    var recType = parts[typeIdx];
+                    var sku = skuIdx !== -1 ? parts[skuIdx] : 'ID:' + internalId;
 
-                    // Find internal ID and Record Type for the SKU
-                    var itemData = findItemBySku(sku);
-                    if (!itemData || !itemData.id) {
-                        errors.push(sku + ': Item Not Found in NetSuite (Check spelling/spaces).');
-                        continue;
-                    }
+                    if (!internalId || !recType) continue;
 
                     try {
-                        var itemRec = record.load({ type: itemData.recordType, id: itemData.id, isDynamic: true });
+                        var itemRec = record.load({ type: recType, id: internalId, isDynamic: true });
                         var priceChanged = false;
 
                         var currencySublistId = 'price' + CURRENCY_CAD; 
@@ -215,11 +216,11 @@ function(serverWidget, record, file, log, search, task, url) {
     }
 
     function generateCsvResponse(response) {
-        var csvHeaders = ['SKU', 'Description'];
+        var csvHeaders = ['Internal ID', 'Record Type', 'SKU', 'Description'];
         PRICE_LEVELS.forEach(function(pl) { csvHeaders.push(pl.name); });
         
         var csvRows = [];
-        var skuDataMap = {}; // { 'ITEM1': { description: 'Desc', 1: 10.50, 2: 12.00 } }
+        var skuDataMap = {}; // { 'ITEM1': { internalId: 1, recordType: 'x', description: 'Desc', 1: 10.50 } }
 
         // Note: SuiteScript search on 'pricing' is sometimes limited.
         // A robust way to extract all prices is searching item, and retrieving the 'pricing' join.
@@ -231,6 +232,8 @@ function(serverWidget, record, file, log, search, task, url) {
                 ['pricing.currency', 'anyof', CURRENCY_CAD]
             ],
             columns: [
+                search.createColumn({ name: 'internalid' }),
+                search.createColumn({ name: 'type' }),
                 search.createColumn({ name: 'itemid' }),
                 search.createColumn({ name: 'displayname' }),
                 search.createColumn({ name: 'salesdescription' }),
@@ -244,19 +247,36 @@ function(serverWidget, record, file, log, search, task, url) {
         pagedData.pageRanges.forEach(function(pageRange) {
             var page = pagedData.fetch({ index: pageRange.index });
             page.data.forEach(function(result) {
+                var internalId = result.getValue({ name: 'internalid' });
+                var rawType = result.getValue({ name: 'type' });
+                var recType = record.Type.INVENTORY_ITEM; // default
+                if (rawType) {
+                    var t = rawType.toLowerCase();
+                    if (t === 'invtpart') recType = record.Type.INVENTORY_ITEM;
+                    else if (t === 'noninvtpart') recType = record.Type.NON_INVENTORY_ITEM;
+                    else if (t === 'assembly') recType = record.Type.ASSEMBLY_ITEM;
+                    else if (t === 'kit') recType = record.Type.KIT_ITEM;
+                    else if (t === 'service') recType = record.Type.SERVICE_ITEM;
+                }
+
                 var sku = result.getValue({ name: 'itemid' });
                 var desc = result.getValue({ name: 'salesdescription' }) || result.getValue({ name: 'displayname' }) || '';
                 var pl = result.getValue({ name: 'pricelevel', join: 'pricing' });
                 var price = result.getValue({ name: 'unitprice', join: 'pricing' });
 
-                if (!skuDataMap[sku]) skuDataMap[sku] = { description: desc };
+                if (!skuDataMap[sku]) skuDataMap[sku] = { internalId: internalId, recordType: recType, description: desc };
                 skuDataMap[sku][pl] = price;
             });
         });
 
         // Build CSV string
         Object.keys(skuDataMap).forEach(function(sku) {
-            var row = ['"' + sku.replace(/"/g, '""') + '"', '"' + skuDataMap[sku].description.replace(/"/g, '""') + '"'];
+            var row = [
+                '"' + skuDataMap[sku].internalId + '"',
+                '"' + skuDataMap[sku].recordType + '"',
+                '"' + sku.replace(/"/g, '""') + '"',
+                '"' + skuDataMap[sku].description.replace(/"/g, '""') + '"'
+            ];
             PRICE_LEVELS.forEach(function(pl) {
                 var price = skuDataMap[sku][pl.id] || '';
                 row.push(price);
@@ -269,35 +289,6 @@ function(serverWidget, record, file, log, search, task, url) {
         response.setHeader({ name: 'Content-Type', value: 'text/csv' });
         response.setHeader({ name: 'Content-Disposition', value: 'attachment; filename="CAD_PriceList_Export.csv"' });
         response.write(csvString);
-    }
-
-    function findItemBySku(sku) {
-        var itemSearch = search.create({
-            type: search.Type.ITEM,
-            filters: [['itemid', 'is', sku]],
-            columns: ['internalid', 'type']
-        });
-        var resultSet = itemSearch.run().getRange({ start: 0, end: 1 });
-        if (resultSet && resultSet.length > 0) {
-            var recType = resultSet[0].getValue({ name: 'type' });
-            // Fallback for cases where type might be empty or map oddly
-            if (!recType) recType = record.Type.INVENTORY_ITEM;
-            else {
-                var t = recType.toLowerCase();
-                if (t === 'invtpart') recType = record.Type.INVENTORY_ITEM;
-                else if (t === 'noninvtpart') recType = record.Type.NON_INVENTORY_ITEM;
-                else if (t === 'assembly') recType = record.Type.ASSEMBLY_ITEM;
-                else if (t === 'kit') recType = record.Type.KIT_ITEM;
-                else if (t === 'service') recType = record.Type.SERVICE_ITEM;
-                else recType = record.Type.INVENTORY_ITEM;
-            }
-            
-            return {
-                id: resultSet[0].getValue({ name: 'internalid' }),
-                recordType: recType
-            };
-        }
-        return null;
     }
 
     return {
