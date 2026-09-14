@@ -37,9 +37,13 @@ export default async function handler(req: any, res: any) {
       return res.status(500).json({ error: 'Server configuration error: Missing TBA keys.' });
     }
 
-    // Clean up the URL by removing ns-at if it exists
-    let cleanUrl = suiteletUrl.split('&ns-at=')[0];
-    cleanUrl = `${cleanUrl}&action=${encodeURIComponent(action)}`;
+    // Construct the clean internal NetSuite URL for TBA (app.netsuite.com)
+    // We cannot use extforms.netsuite.com for authenticated TBA requests.
+    const urlObj = new URL(suiteletUrl);
+    const scriptId = urlObj.searchParams.get('script');
+    const deployId = urlObj.searchParams.get('deploy');
+    
+    let cleanUrl = `https://${accountId}.app.netsuite.com/app/site/hosting/scriptlet.nl?script=${scriptId}&deploy=${deployId}&action=${encodeURIComponent(action)}`;
     
     if (action === 'get_transactions') {
         if (!customerId) return res.status(400).json({ error: 'Missing customerId' });
