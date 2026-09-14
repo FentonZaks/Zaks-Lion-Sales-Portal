@@ -23,13 +23,13 @@ export default async function handler(req: any, res: any) {
     if (!authHeader) {
       return res.status(401).json({ error: 'Missing Authorization header' });
     }
-    const token = authHeader.replace('Bearer ', '');
+    const supabaseToken = authHeader.replace('Bearer ', '');
     
     const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
     const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || '';
     const supabase = createClient(supabaseUrl, supabaseKey);
     
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await supabase.auth.getUser(supabaseToken);
     if (authError || !user) {
       return res.status(401).json({ error: 'Unauthorized. Invalid or expired token.' });
     }
