@@ -251,17 +251,22 @@ function(serverWidget, record, file, log, search, task, url) {
         var itemSearch = search.create({
             type: search.Type.ITEM,
             filters: [['itemid', 'is', sku]],
-            columns: ['internalid', 'recordtype']
+            columns: ['internalid', 'type']
         });
         var resultSet = itemSearch.run().getRange({ start: 0, end: 1 });
         if (resultSet && resultSet.length > 0) {
-            var recType = resultSet[0].getValue({ name: 'recordtype' });
-            // Fallback for cases where recordtype might be empty or map oddly
+            var recType = resultSet[0].getValue({ name: 'type' });
+            // Fallback for cases where type might be empty or map oddly
             if (!recType) recType = record.Type.INVENTORY_ITEM;
-            else if (recType === 'invtpart') recType = record.Type.INVENTORY_ITEM;
-            else if (recType === 'noninvtpart') recType = record.Type.NON_INVENTORY_ITEM;
-            else if (recType === 'assembly') recType = record.Type.ASSEMBLY_ITEM;
-            else if (recType === 'kit') recType = record.Type.KIT_ITEM;
+            else {
+                var t = recType.toLowerCase();
+                if (t === 'invtpart') recType = record.Type.INVENTORY_ITEM;
+                else if (t === 'noninvtpart') recType = record.Type.NON_INVENTORY_ITEM;
+                else if (t === 'assembly') recType = record.Type.ASSEMBLY_ITEM;
+                else if (t === 'kit') recType = record.Type.KIT_ITEM;
+                else if (t === 'service') recType = record.Type.SERVICE_ITEM;
+                else recType = record.Type.INVENTORY_ITEM;
+            }
             
             return {
                 id: resultSet[0].getValue({ name: 'internalid' }),
