@@ -120,25 +120,27 @@ function(serverWidget, record, file, log, search, task, url) {
                     var sku = parts[skuIdx];
                     if (!sku) continue;
 
-                    // Find internal ID for the SKU
-                    var itemId = findItemBySku(sku);
-                    if (!itemId) {
+                    // Find internal ID and Record Type for the SKU
+                    var itemData = findItemBySku(sku);
+                    if (!itemData || !itemData.id) {
                         log.error('Item Not Found', sku);
                         continue;
                     }
 
                     try {
-                        var itemRec = record.load({ type: record.Type.INVENTORY_ITEM, id: itemId, isDynamic: true });
+                        var itemRec = record.load({ type: itemData.recordType, id: itemData.id, isDynamic: true });
                         var priceChanged = false;
 
-                        // Find the pricing sublist for CAD (Currency = 1)
-                        // In Multi-Currency environments, there is a sublist named 'price1' for currency 1, 'price2' for currency 2, etc.
-                        // We will iterate over the standard price sublist.
                         var currencySublistId = 'price' + CURRENCY_CAD; 
-                        
-                        // NetSuite UI exposes "price1" etc. as sublists.
-                        // Note: If single currency, it's just 'price'
-                        var sublistToUse = itemRec.getSublist({ sublistId: currencySublistId }) ? currencySublistId : 'price';
+                        var sublistToUse = 'price';
+                        var sublistNames = itemRec.getSublists();
+                        if (sublistNames.indexOf(currencySublistId) !== -1) {
+                            sublistToUse = currencySublistId;
+                        } else if (sublistNames.indexOf('price') !== -1) {
+                            sublistToUse = 'price';
+                        } else {
+                            continue; // No pricing sublist found
+                        }
 
                         var lineCount = itemRec.getLineCount({ sublistId: sublistToUse });
 
@@ -249,11 +251,22 @@ function(serverWidget, record, file, log, search, task, url) {
         var itemSearch = search.create({
             type: search.Type.ITEM,
             filters: [['itemid', 'is', sku]],
-            columns: ['internalid']
+            columns: ['internalid', 'recordtype']
         });
         var resultSet = itemSearch.run().getRange({ start: 0, end: 1 });
         if (resultSet && resultSet.length > 0) {
-            return resultSet[0].getValue({ name: 'internalid' });
+            var recType = resultSet[0].getValue({ name: 'recordtype' });
+            // Fallback for cases where recordtype might be empty or map oddly
+            if (!recType) recType = record.Type.INVENTORY_ITEM;
+            else if (recType === 'invtpart') recType = record.Type.INVENTORY_ITEM;
+            else if (recType === 'noninvtpart') recType = record.Type.NON_INVENTORY_ITEM;
+            else if (recType === 'assembly') recType = record.Type.ASSEMBLY_ITEM;
+            else if (recType === 'kit') recType = record.Type.KIT_ITEM;
+            
+            return {
+                id: resultSet[0].getValue({ name: 'internalid' }),
+                recordType: recType
+            };
         }
         return null;
     }
