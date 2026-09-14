@@ -90,7 +90,7 @@ function(serverWidget, record, file, log, search, task, url) {
                 }
 
                 // Parse Headers
-                var headers = lines[0].split(',').map(function(h) { return h.replace(/^"|"$/g, '').trim(); });
+                var headers = lines[0].replace(/\uFEFF/g, '').split(',').map(function(h) { return h.replace(/^"|"$/g, '').trim(); });
                 var skuIdx = headers.indexOf('SKU');
                 if (skuIdx === -1) throw new Error("CSV must contain a 'SKU' column.");
 
@@ -104,6 +104,8 @@ function(serverWidget, record, file, log, search, task, url) {
                 }
 
                 var updates = 0;
+                var skipped = 0;
+                var errors = [];
 
                 // Process lines
                 // Note: For very large files, a Map/Reduce script is safer to avoid Governance limits.
@@ -175,13 +177,28 @@ function(serverWidget, record, file, log, search, task, url) {
                         if (priceChanged) {
                             itemRec.save();
                             updates++;
+                        } else {
+                            skipped++; // Prices were identical
                         }
                     } catch (itemErr) {
                         log.error('Error updating item ' + sku, itemErr);
+                        errors.push(sku + ': ' + (itemErr.message || itemErr.toString()));
                     }
                 }
 
-                context.response.write('<h2>Success</h2><p>Processed successfully. Updated ' + updates + ' items.</p><br/><a href="javascript:history.back()">Go Back</a>');
+                var msg = '<h2>Import Complete</h2><p>Successfully updated <b>' + updates + '</b> items.</p>';
+                if (skipped > 0) {
+                    msg += '<p>Skipped <b>' + skipped + '</b> items (the uploaded prices were identical to NetSuite).</p>';
+                }
+                if (errors.length > 0) {
+                    msg += '<p style="color:red;">Errors occurred on ' + errors.length + ' items. First few errors:</p><ul>';
+                    for (var e = 0; e < Math.min(10, errors.length); e++) {
+                        msg += '<li>' + errors[e] + '</li>';
+                    }
+                    msg += '</ul>';
+                }
+                msg += '<br/><a href="javascript:history.back()">Go Back</a>';
+                context.response.write(msg);
 
             } catch (e) {
                 log.error('Error Processing CSV', e);
