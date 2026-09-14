@@ -90,8 +90,8 @@ function(serverWidget, record, file, log, redirect) {
                 }
 
                 // Custom Fields
-                if (parsedData['Banner']) custRec.setValue({ fieldId: 'custentity2', value: parsedData['Banner'].trim() });
-                if (parsedData['Channel']) custRec.setValue({ fieldId: 'custentity5', value: parsedData['Channel'].trim() });
+                if (parsedData['Banner']) custRec.setText({ fieldId: 'custentity2', text: parsedData['Banner'].trim() });
+                if (parsedData['Channel']) custRec.setText({ fieldId: 'custentity5', text: parsedData['Channel'].trim() });
                 if (parsedData['AP Email']) custRec.setValue({ fieldId: 'custentity_atlas_customer_invoice_email', value: parsedData['AP Email'] });
                 
                 // Map and set Price Level
