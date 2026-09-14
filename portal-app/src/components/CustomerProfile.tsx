@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import './../index.css';
 
 import { CategoryDistribution } from './CategoryDistribution';
+import { CustomerTransactions } from './CustomerTransactions';
 
 export function CustomerProfile({ customerId }: { customerId: string }) {
     const [customer, setCustomer] = useState<any>(null);
@@ -129,6 +130,13 @@ export function CustomerProfile({ customerId }: { customerId: string }) {
                         </div>
                     </div>
                 </div>
+
+                {/* Live Transactions Section */}
+                {customer.net_suite_id && (
+                    <div style={{ gridColumn: '1 / -1', marginTop: '1rem' }}>
+                        <CustomerTransactions netSuiteId={customer.net_suite_id} />
+                    </div>
+                )}
 
                 {/* Category Distribution */}
                 <div style={{ gridColumn: '1 / -1' }}>
