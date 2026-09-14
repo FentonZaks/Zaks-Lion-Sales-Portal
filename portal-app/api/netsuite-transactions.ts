@@ -35,7 +35,9 @@ export default async function handler(req: any, res: any) {
     });
 
     if (!nsResponse.ok) {
-        throw new Error(`NetSuite returned status ${nsResponse.status}`);
+        let errorBody = 'No body';
+        try { errorBody = await nsResponse.text(); } catch(e) {}
+        throw new Error(`NetSuite returned status ${nsResponse.status}. Body: ${errorBody}`);
     }
 
     if (action === 'get_pdf') {
