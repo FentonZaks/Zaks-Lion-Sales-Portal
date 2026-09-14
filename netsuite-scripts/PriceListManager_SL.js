@@ -119,9 +119,10 @@ function(serverWidget, record, file, log, search, task, url) {
                     var line = lines[r].trim();
                     if (!line) continue;
 
-                    var parts = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || line.split(',');
-                    for(var j=0; j<parts.length; j++) {
-                        parts[j] = parts[j].replace(/^"|"$/g, '').trim();
+                    // Safely split CSV line by comma, ignoring commas inside quotes
+                    var parts = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                    for(var j = 0; j < parts.length; j++) {
+                        parts[j] = parts[j] ? parts[j].replace(/^"|"$/g, '').trim() : '';
                     }
 
                     var internalId = parts[idIdx];
