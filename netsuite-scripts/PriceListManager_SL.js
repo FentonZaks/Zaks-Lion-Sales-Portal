@@ -151,8 +151,10 @@ function(serverWidget, record, file, log, search, task, url) {
                             var newPriceStr = parts[colIdx];
                             
                             if (newPriceStr === undefined || newPriceStr === null) continue;
-                            var newPrice = parseFloat(newPriceStr);
-                            if (isNaN(newPrice)) continue; // skip blank/invalid cells
+                            
+                            // Treat empty string as an intentional blank to clear the price
+                            var newPrice = newPriceStr === '' ? '' : parseFloat(newPriceStr);
+                            if (newPrice !== '' && isNaN(newPrice)) continue; // skip invalid text, but allow ''
 
                             // Find the line for this price level
                             var lineFound = false;
@@ -162,7 +164,11 @@ function(serverWidget, record, file, log, search, task, url) {
                                 if (pl == priceLevelId) {
                                     lineFound = true;
                                     var currentPrice = itemRec.getCurrentSublistValue({ sublistId: sublistToUse, fieldId: 'price_1_' });
-                                    if (currentPrice != newPrice) {
+                                    
+                                    // Normalize NetSuite's current value to strictly compare 0 vs ''
+                                    var normalizedCurrent = (currentPrice === null || currentPrice === '') ? '' : parseFloat(currentPrice);
+
+                                    if (normalizedCurrent !== newPrice) {
                                         itemRec.setCurrentSublistValue({ sublistId: sublistToUse, fieldId: 'price_1_', value: newPrice });
                                         itemRec.commitLine({ sublistId: sublistToUse });
                                         priceChanged = true;
