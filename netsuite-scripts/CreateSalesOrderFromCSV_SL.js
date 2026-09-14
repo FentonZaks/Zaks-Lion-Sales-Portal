@@ -166,6 +166,8 @@ function(serverWidget, record, file, log, search, redirect) {
                     // Only set rate if the rep manually overrode it in the portal. 
                     // Otherwise, leave it blank to let NetSuite apply the customer's Price Level.
                     if (itemRow.rate && itemRow.rate.trim() !== '') {
+                        // Crucial: Set price level to Custom (-1) before setting the custom rate
+                        soRec.setCurrentSublistValue({ sublistId: 'item', fieldId: 'price', value: -1 });
                         soRec.setCurrentSublistValue({ sublistId: 'item', fieldId: 'rate', value: parseFloat(itemRow.rate) });
                     }
 
@@ -176,7 +178,15 @@ function(serverWidget, record, file, log, search, redirect) {
                         soRec.setCurrentSublistValue({ sublistId: 'item', fieldId: 'description', value: 'Portal Note: ' + itemRow.comment });
                     }
 
-                    soRec.commitLine({ sublistId: 'item' });
+                    try {
+                        soRec.commitLine({ sublistId: 'item' });
+                    } catch (lineErr) {
+                        var errMsg = lineErr.message || lineErr.toString();
+                        if (errMsg.indexOf('Amount') !== -1) {
+                            throw new Error("Failed to add Item '" + itemRow.sku + "'. NetSuite could not determine a price for this item based on the customer's Price Level. Please provide an explicit Override Price for this item in the portal.");
+                        }
+                        throw lineErr;
+                    }
                 }
 
                 // Save Sales Order
