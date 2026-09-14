@@ -175,24 +175,11 @@ export function ManagerDashboard() {
                             repNetSuiteTotals[c.salesrep] += (c.last_month_revenue ?? c.mtd_revenue ?? 0);
                         }
                     }
-                });
-                
-                // ---------- 5️⃣ Visitor (user) stats ----------
+                });                // ---------- 5. Visitor (user) stats ----------
                 const visitorMap: Record<string, Visitor> = {};
-                // First, compute portal MTD per user (all orders they created this month)
-                const userPortalTotals: Record<string, number> = {};
-                (orders || []).forEach((o: Order) => {
-                    // Draft orders are included in user Portal MTD
-                    userPortalTotals[o.user_id] = (userPortalTotals[o.user_id] || 0) + (o.subtotal || 0);
-                });
-
-                // Then process visits to associate a user with a sales rep based on the customer they visited
-                (activities || []).forEach((a: Activity) => {
-                    const cust = customerMap[a.customer_id];
-                    const repName = (cust && cust.salesrep) ? cust.salesrep : 'Unassigned';
-                    
-                    const userId = a.user_id;
-                    const visitorKey = `${repName}|${userId}`; // unique per rep+user
+                
+                const getVisitor = (repName: string, userId: string) => {
+                    const visitorKey = `${repName}|${userId}`;
                     if (!visitorMap[visitorKey]) {
                         visitorMap[visitorKey] = {
                             id: userId,
@@ -201,17 +188,34 @@ export function ManagerDashboard() {
                             calls: 0,
                             completedFollowUps: 0,
                             drafts: 0,
-                            portalMtd: userPortalTotals[userId] || 0
+                            portalMtd: 0
                         };
                     }
+                    return visitorMap[visitorKey];
+                };
+
+                // First, compute portal MTD per user AND rep
+                (orders || []).forEach((o: Order) => {
+                    const cust = customerMap[o.customer_id];
+                    const repName = (cust && cust.salesrep) ? cust.salesrep : 'Unassigned';
+                    const v = getVisitor(repName, o.user_id);
+                    v.portalMtd += (o.subtotal || 0);
+                });
+
+                // Then process activities
+                (activities || []).forEach((a: Activity) => {
+                    const cust = customerMap[a.customer_id];
+                    const repName = (cust && cust.salesrep) ? cust.salesrep : 'Unassigned';
+                    const v = getVisitor(repName, a.user_id);
+                    
                     if (a.activity_type === 'VISIT') {
-                        visitorMap[visitorKey].visits += 1;
+                        v.visits += 1;
                     } else if (a.activity_type === 'CALL') {
-                        visitorMap[visitorKey].calls += 1;
+                        v.calls += 1;
                     } else if (a.activity_type === 'NOTE') {
-                        visitorMap[visitorKey].completedFollowUps += 1;
+                        v.completedFollowUps += 1;
                     } else if (a.activity_type === 'DRAFT_ORDER') {
-                        visitorMap[visitorKey].drafts += 1;
+                        v.drafts += 1;
                     }
                 });
 
