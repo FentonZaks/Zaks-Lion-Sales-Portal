@@ -87,6 +87,12 @@ export default async function handler(req: any, res: any) {
     }
 
     if (action === 'get_pdf') {
+        const contentType = nsResponse.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            const errorData = await nsResponse.json();
+            return res.status(500).json(errorData);
+        }
+
         // Stream the PDF back to the client
         const arrayBuffer = await nsResponse.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
