@@ -87,15 +87,19 @@ export default async function handler(req: any, res: any) {
     }
 
     if (action === 'get_pdf') {
-        const contentType = nsResponse.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-            const errorData = await nsResponse.json();
-            return res.status(500).json(errorData);
+        const arrayBuffer = await nsResponse.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        
+        // Validate that this is actually a PDF by checking the magic number (%PDF-)
+        if (buffer.length < 5 || buffer.toString('utf8', 0, 5) !== '%PDF-') {
+            const errorText = buffer.toString('utf8');
+            return res.status(500).json({ 
+                error: 'NetSuite failed to generate the PDF', 
+                details: errorText 
+            });
         }
 
         // Stream the PDF back to the client
-        const arrayBuffer = await nsResponse.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
         
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `inline; filename="transaction_${transactionId}.pdf"`);
