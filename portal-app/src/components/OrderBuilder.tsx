@@ -305,7 +305,7 @@ export function OrderBuilder() {
                 item.quantity,
                 rate,
                 comment,
-                item.fulfillment_location,
+                isDsdMode ? 'Zaks - Edmonton Warehouse' : item.fulfillment_location,
                 internalMemo,
                 poNumber
             ];
@@ -452,6 +452,30 @@ export function OrderBuilder() {
         if (invalidItem) {
             alert('A comment is strictly required for all price overrides.');
             return;
+        }
+
+        if (isDsdMode) {
+            // Check inventory specifically for Zaks - Edmonton Warehouse
+            const getEdmontonInventory = (product: Product) => {
+                if (product.kit_components && product.kit_components.length > 0) {
+                    let maxKits = Infinity;
+                    for (const comp of product.kit_components) {
+                        const compProduct = allProducts.find(p => p.sku === comp.sku);
+                        if (!compProduct) return 0;
+                        const compInv = compProduct.inventory_by_location?.['Zaks - Edmonton Warehouse'] || 0;
+                        const kitsFromThisComp = Math.floor(compInv / comp.quantity);
+                        if (kitsFromThisComp < maxKits) maxKits = kitsFromThisComp;
+                    }
+                    return maxKits === Infinity ? 0 : maxKits;
+                }
+                return product.inventory_by_location?.['Zaks - Edmonton Warehouse'] || 0;
+            };
+
+            const outOfStockItem = cart.find(item => item.quantity > getEdmontonInventory(item.product));
+            if (outOfStockItem) {
+                alert(`Cannot submit DSD Invoice: Insufficient inventory for ${outOfStockItem.product.sku} at Zaks - Edmonton Warehouse. You are trying to invoice ${outOfStockItem.quantity}, but there is only ${getEdmontonInventory(outOfStockItem.product)} in stock.`);
+                return;
+            }
         }
 
         try {
