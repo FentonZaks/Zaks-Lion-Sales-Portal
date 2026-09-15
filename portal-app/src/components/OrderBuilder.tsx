@@ -452,21 +452,26 @@ export function OrderBuilder() {
             return;
         }
 
-        let currentSignatureData = null;
-        if (isDsdMode) {
-            if (!authorizerName.trim()) {
-                alert('Please enter the name of the Authorizer.');
-                return;
-            }
-            if (!signatureRef.current || signatureRef.current.isEmpty()) {
-                alert('Please capture the Authorizer signature.');
-                return;
-            }
-            currentSignatureData = signatureRef.current.getTrimmedCanvas().toDataURL('image/png');
-        }
-
-        setLoading(true);
         try {
+            let currentSignatureData = null;
+            if (isDsdMode) {
+                if (!authorizerName.trim()) {
+                    alert('Please enter the name of the Authorizer.');
+                    return;
+                }
+                if (!signatureRef.current || typeof signatureRef.current.isEmpty !== 'function') {
+                    console.error("signatureRef:", signatureRef.current);
+                    alert('Signature pad not initialized correctly. Please refresh and try again.');
+                    return;
+                }
+                if (signatureRef.current.isEmpty()) {
+                    alert('Please capture the Authorizer signature.');
+                    return;
+                }
+                currentSignatureData = signatureRef.current.getTrimmedCanvas().toDataURL('image/png');
+            }
+
+            setLoading(true);
             // 1. Generate Files
             const pdfBase64 = await generatePDFBase64(currentSignatureData);
             const csvBase64 = generateCSV();
@@ -548,15 +553,25 @@ export function OrderBuilder() {
                 attachment_url: attachmentPath
             });
             if (activityError) console.error("Failed to log activity:", activityError);
-
-            alert('Draft Order successfully submitted and emailed!');
+            // 5. Clean up
+            setCart([]);
+            setStep('build');
+            setInternalMemo('');
+            setPoNumber('');
+            if (isDsdMode) {
+                setAuthorizerName('');
+                setDsdComment('');
+                if (signatureRef.current) signatureRef.current.clear();
+            }
+            alert(isDsdMode ? 'DSD Invoice successfully submitted and emailed!' : 'Draft Order successfully submitted and emailed!');
             navigate(`/customers/${customerId}`);
             
-        } catch (error) {
+        } catch (error: any) {
             console.error('Submission failed', error);
-            alert('Failed to submit the draft order.');
+            alert(`Failed to submit the order. Error: ${error.message || JSON.stringify(error)}`);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     // Apply Search Filter
