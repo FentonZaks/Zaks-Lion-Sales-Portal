@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 
 export function NewCustomer() {
     const navigate = useNavigate();
