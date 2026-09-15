@@ -549,7 +549,7 @@ export function OrderBuilder() {
             const { error: activityError } = await supabase.from('activities').insert({
                 customer_id: customerId,
                 user_id: userId,
-                activity_type: isDsdMode ? 'DSD_INVOICE' : 'DRAFT_ORDER',
+                activity_type: 'DRAFT_ORDER',
                 subject: isDsdMode ? 'Draft invoice submitted to store' : 'Draft Order Generated',
                 notes: isDsdMode 
                     ? `Draft invoice submitted to store and emailed for $${subtotal.toFixed(2)}.` 
