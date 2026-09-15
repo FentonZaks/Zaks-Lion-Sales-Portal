@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { jsPDF } from 'jspdf';
+import * as jspdf from 'jspdf';
 import { ShoppingCart, Package, AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, PenTool } from 'lucide-react';
 import SignatureCanvas from 'react-signature-canvas';
 interface Product {
@@ -322,7 +322,8 @@ export function OrderBuilder() {
 
     const generatePDFBase64 = (signatureDataUrl?: string | null) => {
         return new Promise<string>((resolve) => {
-            const doc = new jsPDF();
+            const JsPDFConstructor = (jspdf as any).jsPDF || (jspdf as any).default || jspdf;
+            const doc = new JsPDFConstructor();
                 
                 doc.setFontSize(18);
                 doc.text("Draft Order Summary", 20, 20);
