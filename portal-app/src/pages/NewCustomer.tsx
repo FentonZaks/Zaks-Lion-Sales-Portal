@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
-import * as jspdf from 'jspdf';
 
 export function NewCustomer() {
     const navigate = useNavigate();
@@ -117,8 +116,8 @@ export function NewCustomer() {
 
     const generatePDFBase64 = (): Promise<string> => {
         return new Promise<string>((resolve) => {
-            const JsPDFConstructor = (jspdf as any).jsPDF || (jspdf as any).default || jspdf;
-            const doc = new JsPDFConstructor();
+            // @ts-ignore
+            const doc = new window.jspdf.jsPDF();
                 
                 doc.setFontSize(18);
                 doc.text("New Customer Submission", 20, 20);
