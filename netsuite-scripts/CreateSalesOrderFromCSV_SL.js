@@ -138,6 +138,8 @@ function(serverWidget, record, file, log, search, redirect) {
                 var itemCache = {};
 
                 // Add Items
+                var needsPricingReview = false;
+                
                 for (var k = 0; k < orderData.length; k++) {
                     var itemRow = orderData[k];
                     
@@ -183,10 +185,27 @@ function(serverWidget, record, file, log, search, redirect) {
                     } catch (lineErr) {
                         var errMsg = lineErr.message || lineErr.toString();
                         if (errMsg.indexOf('Amount') !== -1) {
-                            throw new Error("Failed to add Item '" + itemRow.sku + "'. NetSuite could not determine a price for this item based on the customer's Price Level. Please provide an explicit Override Price for this item in the portal.");
+                            // NetSuite threw an error because the item has no price for this customer's price level.
+                            // The user requested we force it through with a 0 price and flag it for admin review.
+                            needsPricingReview = true;
+                            
+                            soRec.setCurrentSublistValue({ sublistId: 'item', fieldId: 'price', value: -1 }); // Custom Price Level
+                            soRec.setCurrentSublistValue({ sublistId: 'item', fieldId: 'rate', value: 0 });
+                            
+                            var currentDesc = soRec.getCurrentSublistValue({ sublistId: 'item', fieldId: 'description' }) || '';
+                            soRec.setCurrentSublistValue({ sublistId: 'item', fieldId: 'description', value: '[!!! MISSING PRICE !!!] ' + currentDesc });
+                            
+                            soRec.commitLine({ sublistId: 'item' });
+                        } else {
+                            throw lineErr;
                         }
-                        throw lineErr;
                     }
+                }
+
+                // Add warning memo to the main Sales Order if any items were missing pricing
+                if (needsPricingReview) {
+                    var currentMemo = soRec.getValue({ fieldId: 'memo' }) || '';
+                    soRec.setValue({ fieldId: 'memo', value: '[ATTENTION: ITEMS NEED PRICING] ' + currentMemo });
                 }
 
                 // Save Sales Order
