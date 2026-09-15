@@ -325,24 +325,27 @@ export function OrderBuilder() {
             const doc = new window.jspdf.jsPDF();
                 
                 doc.setFontSize(18);
-                doc.text("Draft Order Summary", 20, 20);
+                doc.text(isDsdMode ? "DSD Invoice Summary" : "Draft Order Summary", 20, 20);
                 
-                doc.setFontSize(12);
-                doc.text(`Customer: ${customer?.name}`, 20, 30);
-                doc.text(`NetSuite ID: ${customer?.net_suite_id}`, 20, 38);
-                if (customerLocation?.province) {
-                    doc.text(`Shipping To: ${customerLocation.province}, ${customerLocation.country}`, 20, 46);
-                }
-                
+                let currentY = 30;
                 if (isDsdMode) {
+                    doc.setFontSize(14);
                     doc.setFont("helvetica", "bold");
                     doc.setTextColor(220, 38, 38);
-                    doc.text("DIRECT STORE DELIVERY (DSD) INVOICE", 100, 30, { align: "center" });
+                    doc.text("DIRECT STORE DELIVERY (DSD) INVOICE", 20, currentY);
                     doc.setTextColor(0, 0, 0);
                     doc.setFont("helvetica", "normal");
+                    currentY += 10;
+                }
+
+                doc.setFontSize(12);
+                doc.text(`Customer: ${customer?.name}`, 20, currentY);
+                doc.text(`NetSuite ID: ${customer?.net_suite_id}`, 20, currentY + 8);
+                if (customerLocation?.province) {
+                    doc.text(`Shipping To: ${customerLocation.province}, ${customerLocation.country}`, 20, currentY + 16);
                 }
                 
-                let y = 60;
+                let y = currentY + 30;
                 doc.setFont("helvetica", "bold");
                 doc.text("SKU / Description", 20, y);
                 doc.text("Qty", 80, y);
@@ -546,9 +549,11 @@ export function OrderBuilder() {
             const { error: activityError } = await supabase.from('activities').insert({
                 customer_id: customerId,
                 user_id: userId,
-                activity_type: 'DRAFT_ORDER',
-                subject: 'Draft Order Generated',
-                notes: `Draft order generated and emailed for $${subtotal.toFixed(2)}.`,
+                activity_type: isDsdMode ? 'DSD_INVOICE' : 'DRAFT_ORDER',
+                subject: isDsdMode ? 'Draft invoice submitted to store' : 'Draft Order Generated',
+                notes: isDsdMode 
+                    ? `Draft invoice submitted to store and emailed for $${subtotal.toFixed(2)}.` 
+                    : `Draft order generated and emailed for $${subtotal.toFixed(2)}.`,
                 attachment_url: attachmentPath
             });
             if (activityError) console.error("Failed to log activity:", activityError);
