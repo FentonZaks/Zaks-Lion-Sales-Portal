@@ -12,35 +12,36 @@ function(serverWidget, record, file, log, search, redirect) {
 
     function onRequest(context) {
         if (context.request.method === 'GET') {
-            var form = serverWidget.createForm({
-                title: 'Sales Portal: Import Draft Order'
-            });
-
-            form.addField({
-                id: 'custpage_csv_file',
+            var form = serverWidget.createForm({ title: 'Upload Draft Sales Order CSV' });
+            
+            var fileField = form.addField({
+                id: 'custpage_csvfile',
                 type: serverWidget.FieldType.FILE,
-                label: 'Upload Order CSV File'
+                label: 'Select CSV File'
             });
-
-            form.addSubmitButton({
-                label: 'Create Sales Order'
-            });
-
+            fileField.isMandatory = true;
+            
+            form.addSubmitButton({ label: 'Upload & Create Sales Order' });
+            
             context.response.writePage(form);
-            return;
-        }
-
-        if (context.request.method === 'POST') {
+        } else {
             try {
-                var fileObj = context.request.files.custpage_csv_file;
-                if (!fileObj) {
-                    throw new Error("No file uploaded.");
+                var csvFile = context.request.files.custpage_csvfile || context.request.files.csvfile;
+                if (!csvFile) {
+                    var form = serverWidget.createForm({ title: 'Error' });
+                    form.addField({ id: 'custpage_err', type: serverWidget.FieldType.INLINEHTML, label: ' ' }).defaultValue = '<p>No file uploaded.</p><br/><a href="javascript:history.back()">Go Back</a>';
+                    context.response.writePage(form);
+                    return;
                 }
 
-                var fileContent = fileObj.getContents();
-                var lines = fileContent.split('\n');
+                var fileContent = csvFile.getContents();
+                var lines = fileContent.split(/\r?\n/);
+
                 if (lines.length < 2) {
-                    throw new Error("CSV file is empty or missing data.");
+                    var form = serverWidget.createForm({ title: 'Error' });
+                    form.addField({ id: 'custpage_err', type: serverWidget.FieldType.INLINEHTML, label: ' ' }).defaultValue = '<p>CSV is empty or missing data rows.</p><br/><a href="javascript:history.back()">Go Back</a>';
+                    context.response.writePage(form);
+                    return;
                 }
 
                 // Headers: Customer ID, SKU, Quantity, Rate, Comment, Location, Internal Memo, PO Number
@@ -226,12 +227,17 @@ function(serverWidget, record, file, log, search, redirect) {
                 var salesOrderId = soRec.save();
                 log.audit('Sales Order Created', 'ID: ' + salesOrderId);
 
-                // Success Response
-                context.response.write('<h2>Success!</h2><p>Sales Order successfully created. <a href="/app/accounting/transactions/salesord.nl?id=' + salesOrderId + '">Click here to view Sales Order</a></p><br/><a href="javascript:history.back()">Upload Another</a>');
+                var form = serverWidget.createForm({ title: 'Success!' });
+                form.addField({ id: 'custpage_msg', type: serverWidget.FieldType.INLINEHTML, label: ' ' }).defaultValue = 
+                    '<p>Sales Order successfully created. <a href="/app/accounting/transactions/salesord.nl?id=' + salesOrderId + '">Click here to view Sales Order</a></p><br/><a href="javascript:history.back()">Upload Another</a>';
+                context.response.writePage(form);
 
             } catch (e) {
                 log.error('Error Processing CSV', e);
-                context.response.write('<h2>Error Processing CSV</h2><p>' + e.message + '</p><br/><a href="javascript:history.back()">Go Back</a>');
+                var form = serverWidget.createForm({ title: 'Error Processing CSV' });
+                form.addField({ id: 'custpage_err', type: serverWidget.FieldType.INLINEHTML, label: ' ' }).defaultValue = 
+                    '<p>' + e.message + '</p><br/><a href="javascript:history.back()">Go Back</a>';
+                context.response.writePage(form);
             }
         }
     }

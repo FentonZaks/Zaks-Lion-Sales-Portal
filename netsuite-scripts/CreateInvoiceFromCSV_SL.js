@@ -3,20 +3,28 @@
  * @NScriptType Suitelet
  * @NModuleScope SameAccount
  */
-define(['N/file', 'N/record', 'N/search'], function(file, record, search) {
+define(['N/file', 'N/record', 'N/search', 'N/ui/serverWidget'], function(file, record, search, serverWidget) {
 
     function onRequest(context) {
         if (context.request.method === 'GET') {
-            var html = '<html><body><h2>Upload Direct Invoice CSV</h2>' +
-                       '<form method="POST" enctype="multipart/form-data">' +
-                       '<input type="file" name="csvfile" accept=".csv" required/><br/><br/>' +
-                       '<input type="submit" value="Upload & Create Invoice"/>' +
-                       '</form></body></html>';
-            context.response.write(html);
+            var form = serverWidget.createForm({ title: 'Upload Direct Invoice CSV' });
+            
+            var fileField = form.addField({
+                id: 'custpage_csvfile',
+                type: serverWidget.FieldType.FILE,
+                label: 'Select CSV File'
+            });
+            fileField.isMandatory = true;
+            
+            form.addSubmitButton({ label: 'Upload & Create Invoice' });
+            
+            context.response.writePage(form);
         } else {
-            var csvFile = context.request.files.csvfile;
+            var csvFile = context.request.files.custpage_csvfile || context.request.files.csvfile;
             if (!csvFile) {
-                context.response.write('<h2>Error</h2><p>No file uploaded.</p>');
+                var form = serverWidget.createForm({ title: 'Error' });
+                form.addField({ id: 'custpage_err', type: serverWidget.FieldType.INLINEHTML, label: ' ' }).defaultValue = '<p>No file uploaded.</p><br/><a href="javascript:history.back()">Go Back</a>';
+                context.response.writePage(form);
                 return;
             }
 
@@ -24,7 +32,9 @@ define(['N/file', 'N/record', 'N/search'], function(file, record, search) {
             var lines = fileContent.split(/\r?\n/);
 
             if (lines.length < 2) {
-                context.response.write('<h2>Error</h2><p>CSV is empty or missing data rows.</p>');
+                var form = serverWidget.createForm({ title: 'Error' });
+                form.addField({ id: 'custpage_err', type: serverWidget.FieldType.INLINEHTML, label: ' ' }).defaultValue = '<p>CSV is empty or missing data rows.</p><br/><a href="javascript:history.back()">Go Back</a>';
+                context.response.writePage(form);
                 return;
             }
 
@@ -160,11 +170,17 @@ define(['N/file', 'N/record', 'N/search'], function(file, record, search) {
                 var invoiceId = invRec.save();
                 log.audit('Invoice Created', 'ID: ' + invoiceId);
 
-                context.response.write('<h2>Success!</h2><p>Invoice successfully created. <a href="/app/accounting/transactions/custinvc.nl?id=' + invoiceId + '">Click here to view Invoice</a></p><br/><a href="javascript:history.back()">Upload Another</a>');
+                var form = serverWidget.createForm({ title: 'Success!' });
+                form.addField({ id: 'custpage_msg', type: serverWidget.FieldType.INLINEHTML, label: ' ' }).defaultValue = 
+                    '<p>Invoice successfully created. <a href="/app/accounting/transactions/custinvc.nl?id=' + invoiceId + '">Click here to view Invoice</a></p><br/><a href="javascript:history.back()">Upload Another</a>';
+                context.response.writePage(form);
 
             } catch (e) {
                 log.error('Error Processing CSV', e);
-                context.response.write('<h2>Error Processing CSV</h2><p>' + e.message + '</p><br/><a href="javascript:history.back()">Go Back</a>');
+                var form = serverWidget.createForm({ title: 'Error Processing CSV' });
+                form.addField({ id: 'custpage_err', type: serverWidget.FieldType.INLINEHTML, label: ' ' }).defaultValue = 
+                    '<p>' + e.message + '</p><br/><a href="javascript:history.back()">Go Back</a>';
+                context.response.writePage(form);
             }
         }
     }
