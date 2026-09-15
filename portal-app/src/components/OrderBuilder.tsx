@@ -68,7 +68,6 @@ export function OrderBuilder() {
     const [isDsdMode, setIsDsdMode] = useState(false);
     const [authorizerName, setAuthorizerName] = useState('');
     const [dsdComment, setDsdComment] = useState('');
-    const [signatureData, setSignatureData] = useState<string | null>(null);
     const signatureRef = useState<any>(null); // We'll manage this manually in the review step
 
     useEffect(() => {
