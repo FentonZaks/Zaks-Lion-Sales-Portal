@@ -806,13 +806,13 @@ export function OrderBuilder() {
                                 Order Type:
                             </div>
                             <button 
-                                onClick={() => setIsDsdMode(false)}
+                                onClick={() => { setIsDsdMode(false); setSelectedWarehouse('Zaks - Main Warehouse YYC'); }}
                                 style={{ padding: '0.5rem 1rem', borderRadius: '6px', border: 'none', fontWeight: 600, cursor: 'pointer', backgroundColor: !isDsdMode ? 'var(--primary-color)' : 'transparent', color: !isDsdMode ? 'white' : 'var(--text-secondary)' }}
                             >
                                 Sales Order
                             </button>
                             <button 
-                                onClick={() => setIsDsdMode(true)}
+                                onClick={() => { setIsDsdMode(true); setSelectedWarehouse('Zaks - Edmonton Warehouse'); }}
                                 style={{ padding: '0.5rem 1rem', borderRadius: '6px', border: 'none', fontWeight: 600, cursor: 'pointer', backgroundColor: isDsdMode ? '#ef4444' : 'transparent', color: isDsdMode ? 'white' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                             >
                                 <PenTool size={16} /> Direct Invoice (DSD)
