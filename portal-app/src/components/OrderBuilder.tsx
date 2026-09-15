@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { ShoppingCart, Package, AlertTriangle, CheckCircle2, ChevronDown, ChevronRight } from 'lucide-react';
+import { ShoppingCart, Package, AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, PenTool } from 'lucide-react';
+import SignatureCanvas from 'react-signature-canvas';
 interface Product {
     id: string;
     sku: string;
@@ -61,6 +62,14 @@ export function OrderBuilder() {
     const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
     const [searchQuery, setSearchQuery] = useState('');
     const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
+    const [isAdmin, setIsAdmin] = useState(false);
+
+    // DSD specific state
+    const [isDsdMode, setIsDsdMode] = useState(false);
+    const [authorizerName, setAuthorizerName] = useState('');
+    const [dsdComment, setDsdComment] = useState('');
+    const [signatureData, setSignatureData] = useState<string | null>(null);
+    const signatureRef = useState<any>(null); // We'll manage this manually in the review step
 
     useEffect(() => {
         async function checkAuth() {
@@ -70,6 +79,7 @@ export function OrderBuilder() {
                 setUserId(user.id);
                 const { data: roles } = await supabase.from('user_roles').select('roles(name)').eq('user_id', user.id);
                 const hasStrictAdminRole = roles?.some(r => (r.roles as any)?.name === 'ADMIN');
+                setIsAdmin(hasStrictAdminRole || user.email === 'jarvis@zaksfoods.ca');
                 if (hasStrictAdminRole || user.email === 'jarvis@zaksfoods.ca') {
                     setIsAuthorized(true);
                     if (customerId) fetchCustomerData();
@@ -310,8 +320,8 @@ export function OrderBuilder() {
         return "data:text/csv;base64," + btoa(csvContent);
     };
 
-    const generatePDFBase64 = (): Promise<string> => {
-        return new Promise((resolve) => {
+    const generatePDFBase64 = (signatureDataUrl?: string | null) => {
+        return new Promise<string>((resolve) => {
             import('jspdf').then(({ jsPDF }) => {
                 const doc = new jsPDF();
                 
@@ -323,6 +333,14 @@ export function OrderBuilder() {
                 doc.text(`NetSuite ID: ${customer?.net_suite_id}`, 20, 38);
                 if (customerLocation?.province) {
                     doc.text(`Shipping To: ${customerLocation.province}, ${customerLocation.country}`, 20, 46);
+                }
+                
+                if (isDsdMode) {
+                    doc.setFont("helvetica", "bold");
+                    doc.setTextColor(220, 38, 38);
+                    doc.text("DIRECT STORE DELIVERY (DSD) INVOICE", 100, 30, { align: "center" });
+                    doc.setTextColor(0, 0, 0);
+                    doc.setFont("helvetica", "normal");
                 }
                 
                 let y = 60;
@@ -399,6 +417,27 @@ export function OrderBuilder() {
                 doc.setFont("helvetica", "bold");
                 doc.text(`Estimated Subtotal: ${subtotal.toFixed(2)}`, 110, y);
                 
+                if (isDsdMode) {
+                    y += 20;
+                    if (y > 250) {
+                        doc.addPage();
+                        y = 20;
+                    }
+                    doc.setFontSize(10);
+                    if (dsdComment) {
+                        doc.text(`Driver Note: ${dsdComment}`, 20, y);
+                        y += 15;
+                    }
+                    doc.text(`Received By: ${authorizerName}`, 20, y);
+                    y += 10;
+                    
+                    // Add signature image if available (we will pass it in as a param to the function)
+                    if (signatureDataUrl) {
+                        doc.addImage(signatureDataUrl, 'PNG', 20, y, 60, 20);
+                        y += 25;
+                    }
+                }
+                
                 const base64String = doc.output('datauristring');
                 resolve(base64String);
             });
@@ -414,10 +453,23 @@ export function OrderBuilder() {
             return;
         }
 
+        let currentSignatureData = null;
+        if (isDsdMode) {
+            if (!authorizerName.trim()) {
+                alert('Please enter the name of the Authorizer.');
+                return;
+            }
+            if (!signatureRef[0] || signatureRef[0].isEmpty()) {
+                alert('Please capture the Authorizer signature.');
+                return;
+            }
+            currentSignatureData = signatureRef[0].getTrimmedCanvas().toDataURL('image/png');
+        }
+
         setLoading(true);
         try {
             // 1. Generate Files
-            const pdfBase64 = await generatePDFBase64();
+            const pdfBase64 = await generatePDFBase64(currentSignatureData);
             const csvBase64 = generateCSV();
 
             // 1b. Upload PDF to Supabase Storage
@@ -437,15 +489,26 @@ export function OrderBuilder() {
             }
 
             // 2. Email it via our API
-            const emailRes = await fetch('/api/send-draft-order', {
+            let emailEndpoint = '/api/send-draft-order';
+            let requestBody: any = {
+                customerName: customer?.name,
+                pdfBase64,
+                csvBase64,
+                recipientEmail: 'bryan@zaksfoods.ca'
+            };
+
+            if (isDsdMode) {
+                emailEndpoint = '/api/send-dsd-invoice';
+                requestBody.signatureBase64 = currentSignatureData;
+                requestBody.authorizerName = authorizerName;
+                requestBody.dsdComment = dsdComment;
+                // Currently routing to bryan as requested for testing, can be updated later
+            }
+
+            const emailRes = await fetch(emailEndpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    customerName: customer?.name,
-                    pdfBase64,
-                    csvBase64,
-                    recipientEmail: 'bryan@zaksfoods.ca'
-                })
+                body: JSON.stringify(requestBody)
             });
 
             if (!emailRes.ok) {
@@ -616,6 +679,53 @@ export function OrderBuilder() {
                     </div>
                 </div>
 
+                {isDsdMode && (
+                    <div className="card" style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', backgroundColor: '#fef2f2', border: '1px solid #fca5a5' }}>
+                        <h2 style={{ fontSize: '1.25rem', color: '#b91c1c', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <PenTool size={20} /> Direct Store Delivery (DSD) Authorization
+                        </h2>
+                        
+                        <div>
+                            <label style={{ display: 'block', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.875rem' }}>Authorizer Name (Store Manager/Owner)</label>
+                            <input 
+                                type="text"
+                                value={authorizerName}
+                                onChange={(e) => setAuthorizerName(e.target.value)}
+                                placeholder="Enter full name"
+                                style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '1rem' }}
+                            />
+                        </div>
+
+                        <div>
+                            <label style={{ display: 'block', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.875rem' }}>Driver Note (Only visible on PDF Receipt)</label>
+                            <input 
+                                type="text"
+                                value={dsdComment}
+                                onChange={(e) => setDsdComment(e.target.value)}
+                                placeholder="E.g., Left at back door, Manager not on site..."
+                                style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '1rem' }}
+                            />
+                        </div>
+
+                        <div>
+                            <label style={{ display: 'block', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.875rem' }}>Signature</label>
+                            <div style={{ border: '1px solid var(--border-color)', borderRadius: '8px', backgroundColor: 'white', overflow: 'hidden' }}>
+                                <SignatureCanvas 
+                                    ref={(ref) => { signatureRef[0] = ref; }}
+                                    penColor="black"
+                                    canvasProps={{ width: 700, height: 200, className: 'sigCanvas' }}
+                                />
+                            </div>
+                            <button 
+                                onClick={() => signatureRef[0]?.clear()} 
+                                style={{ marginTop: '0.5rem', padding: '0.5rem 1rem', fontSize: '0.875rem', backgroundColor: '#e2e8f0', color: 'var(--text-primary)', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                            >
+                                Clear Signature
+                            </button>
+                        </div>
+                    </div>
+                )}
+
                 <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
                     <button 
                         onClick={() => setStep('build')} 
@@ -627,9 +737,9 @@ export function OrderBuilder() {
                     <button 
                         onClick={handleSubmit} 
                         disabled={loading}
-                        style={{ flex: 2, padding: '1rem', backgroundColor: 'var(--primary-color)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700, fontSize: '1.1rem', cursor: loading ? 'not-allowed' : 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}
+                        style={{ flex: 2, padding: '1rem', backgroundColor: isDsdMode ? '#ef4444' : 'var(--primary-color)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700, fontSize: '1.1rem', cursor: loading ? 'not-allowed' : 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}
                     >
-                        {loading ? 'Submitting...' : <><CheckCircle2 size={20} /> Submit Order to Head Office</>}
+                        {loading ? 'Submitting...' : <><CheckCircle2 size={20} /> {isDsdMode ? 'Submit DSD Invoice' : 'Submit Order to Head Office'}</>}
                     </button>
                 </div>
             </div>
@@ -647,6 +757,26 @@ export function OrderBuilder() {
                         {customer?.name} <span style={{ opacity: 0.6 }}>({customer?.net_suite_id})</span>
                         {customerLocation?.province && ` • Shipping to ${customerLocation.province}, ${customerLocation.country}`}
                     </p>
+                    
+                    {isAdmin && (
+                        <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '1rem', backgroundColor: isDsdMode ? '#fef2f2' : '#f8fafc', padding: '0.75rem 1rem', borderRadius: '8px', border: `1px solid ${isDsdMode ? '#fca5a5' : 'var(--border-color)'}` }}>
+                            <div style={{ fontWeight: 600, color: isDsdMode ? '#b91c1c' : 'var(--text-primary)' }}>
+                                Order Type:
+                            </div>
+                            <button 
+                                onClick={() => setIsDsdMode(false)}
+                                style={{ padding: '0.5rem 1rem', borderRadius: '6px', border: 'none', fontWeight: 600, cursor: 'pointer', backgroundColor: !isDsdMode ? 'var(--primary-color)' : 'transparent', color: !isDsdMode ? 'white' : 'var(--text-secondary)' }}
+                            >
+                                Sales Order
+                            </button>
+                            <button 
+                                onClick={() => setIsDsdMode(true)}
+                                style={{ padding: '0.5rem 1rem', borderRadius: '6px', border: 'none', fontWeight: 600, cursor: 'pointer', backgroundColor: isDsdMode ? '#ef4444' : 'transparent', color: isDsdMode ? 'white' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                            >
+                                <PenTool size={16} /> Direct Invoice (DSD)
+                            </button>
+                        </div>
+                    )}
                 </div>
                 
                 <div style={{ backgroundColor: 'white', padding: '1rem', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', border: '1px solid var(--border-color)' }}>
