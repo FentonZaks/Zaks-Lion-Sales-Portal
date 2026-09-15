@@ -139,6 +139,8 @@ function(serverWidget, record, file, log, search, redirect) {
 
                 // Add Items
                 var needsPricingReview = false;
+                var missingItems = false;
+                var missingItemText = '';
                 
                 for (var k = 0; k < orderData.length; k++) {
                     var itemRow = orderData[k];
@@ -156,7 +158,10 @@ function(serverWidget, record, file, log, search, redirect) {
                             itemInternalId = resultSet[0].getValue({ name: 'internalid' });
                             itemCache[itemRow.sku] = itemInternalId;
                         } else {
-                            throw new Error("Could not find Item in NetSuite with SKU: " + itemRow.sku);
+                            // Item not found in NetSuite. Skip it and flag the order.
+                            missingItems = true;
+                            missingItemText += itemRow.sku + ' ';
+                            continue;
                         }
                     }
 
@@ -202,10 +207,19 @@ function(serverWidget, record, file, log, search, redirect) {
                     }
                 }
 
-                // Add warning memo to the main Sales Order if any items were missing pricing
+                // Add warning memos to the main Sales Order if there were any issues
+                var currentMemo = soRec.getValue({ fieldId: 'memo' }) || '';
+                var newMemo = currentMemo;
+                
                 if (needsPricingReview) {
-                    var currentMemo = soRec.getValue({ fieldId: 'memo' }) || '';
-                    soRec.setValue({ fieldId: 'memo', value: '[ATTENTION: ITEMS NEED PRICING] ' + currentMemo });
+                    newMemo = '[ATTENTION: ITEMS NEED PRICING] ' + newMemo;
+                }
+                if (missingItems) {
+                    newMemo = '[WARNING: SKIPPED MISSING SKUs: ' + missingItemText.trim() + '] ' + newMemo;
+                }
+                
+                if (newMemo !== currentMemo) {
+                    soRec.setValue({ fieldId: 'memo', value: newMemo });
                 }
 
                 // Save Sales Order
