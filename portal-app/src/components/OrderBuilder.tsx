@@ -525,7 +525,7 @@ export function OrderBuilder() {
             const { data: order, error: orderError } = await supabase.from('orders').insert({
                 customer_id: customerId,
                 user_id: userId,
-                status: isDsdMode ? 'DSD Invoice' : 'DRAFT',
+                status: 'DRAFT',
                 subtotal: subtotal,
                 po_number: poNumber || null,
                 internal_memo: internalMemo || null

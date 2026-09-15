@@ -30,12 +30,7 @@ export default async function handler(req: any, res: any) {
             }
         ];
 
-        if (signatureBase64) {
-            attachments.push({
-                filename: `signature_${authorizerName?.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'auth'}.png`,
-                content: signatureBase64.split('base64,')[1]
-            });
-        }
+
 
         let htmlContent = `
             <h2>New Direct Store Delivery (DSD) Invoice</h2>
