@@ -467,7 +467,7 @@ export function OrderBuilder() {
                     alert('Please capture the Authorizer signature.');
                     return;
                 }
-                currentSignatureData = signatureRef.current.getTrimmedCanvas().toDataURL('image/png');
+                currentSignatureData = signatureRef.current.getCanvas().toDataURL('image/png');
             }
 
             setLoading(true);
