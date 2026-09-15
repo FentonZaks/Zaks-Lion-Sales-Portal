@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { ShoppingCart, Package, AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, PenTool } from 'lucide-react';
@@ -68,7 +68,7 @@ export function OrderBuilder() {
     const [isDsdMode, setIsDsdMode] = useState(false);
     const [authorizerName, setAuthorizerName] = useState('');
     const [dsdComment, setDsdComment] = useState('');
-    const signatureRef = useState<any>(null); // We'll manage this manually in the review step
+    const signatureRef = useRef<any>(null);
 
     useEffect(() => {
         async function checkAuth() {
@@ -458,11 +458,11 @@ export function OrderBuilder() {
                 alert('Please enter the name of the Authorizer.');
                 return;
             }
-            if (!signatureRef[0] || signatureRef[0].isEmpty()) {
+            if (!signatureRef.current || signatureRef.current.isEmpty()) {
                 alert('Please capture the Authorizer signature.');
                 return;
             }
-            currentSignatureData = signatureRef[0].getTrimmedCanvas().toDataURL('image/png');
+            currentSignatureData = signatureRef.current.getTrimmedCanvas().toDataURL('image/png');
         }
 
         setLoading(true);
@@ -710,13 +710,13 @@ export function OrderBuilder() {
                             <label style={{ display: 'block', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.875rem' }}>Signature</label>
                             <div style={{ border: '1px solid var(--border-color)', borderRadius: '8px', backgroundColor: 'white', overflow: 'hidden' }}>
                                 <SignatureCanvas 
-                                    ref={(ref) => { signatureRef[0] = ref; }}
+                                    ref={signatureRef}
                                     penColor="black"
                                     canvasProps={{ width: 700, height: 200, className: 'sigCanvas' }}
                                 />
                             </div>
                             <button 
-                                onClick={() => signatureRef[0]?.clear()} 
+                                onClick={() => signatureRef.current?.clear()} 
                                 style={{ marginTop: '0.5rem', padding: '0.5rem 1rem', fontSize: '0.875rem', backgroundColor: '#e2e8f0', color: 'var(--text-primary)', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                             >
                                 Clear Signature
