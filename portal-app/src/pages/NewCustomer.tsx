@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
+import jsPDF from 'jspdf';
 
 export function NewCustomer() {
     const navigate = useNavigate();
@@ -115,10 +116,8 @@ export function NewCustomer() {
     };
 
     const generatePDFBase64 = (): Promise<string> => {
-        return new Promise((resolve) => {
-            // Dynamically import jspdf to keep frontend bundle smaller
-            import('jspdf').then(({ jsPDF }) => {
-                const doc = new jsPDF();
+        return new Promise<string>((resolve) => {
+            const doc = new jsPDF();
                 
                 doc.setFontSize(18);
                 doc.text("New Customer Submission", 20, 20);
@@ -170,8 +169,7 @@ export function NewCustomer() {
                 
                 // Return base64 string
                 const base64String = doc.output('datauristring');
-                resolve(base64String);
-            });
+            resolve(base64String);
         });
     };
 

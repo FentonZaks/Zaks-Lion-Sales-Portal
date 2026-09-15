@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { jsPDF } from 'jspdf';
+import jsPDF from 'jspdf';
 import { ShoppingCart, Package, AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, PenTool } from 'lucide-react';
 import SignatureCanvas from 'react-signature-canvas';
 interface Product {
