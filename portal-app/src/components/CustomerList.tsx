@@ -91,7 +91,20 @@ export function CustomerList() {
         .limit(currentLimit);
       
       if (searchTerm) {
-        query = query.or(`name.ilike.%${searchTerm}%,net_suite_id.ilike.%${searchTerm}%`);
+        // First find any locations matching the search (limit to prevent huge URLs)
+        const { data: locData } = await supabase
+            .from('customer_locations')
+            .select('customer_id')
+            .or(`city.ilike.%${searchTerm}%,address_line_1.ilike.%${searchTerm}%`)
+            .limit(100);
+            
+        const locCustIds = locData ? locData.map(l => l.customer_id) : [];
+        
+        if (locCustIds.length > 0) {
+            query = query.or(`name.ilike.%${searchTerm}%,net_suite_id.ilike.%${searchTerm}%,id.in.(${locCustIds.join(',')})`);
+        } else {
+            query = query.or(`name.ilike.%${searchTerm}%,net_suite_id.ilike.%${searchTerm}%`);
+        }
       }
 
       if (repFilter) {
@@ -125,7 +138,7 @@ export function CustomerList() {
             <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
                 <input 
                   type="text" 
-                  placeholder="Search by name or ID..." 
+                  placeholder="Search by name, ID, city, or address..." 
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   style={{ flexGrow: 1, padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)' }} 

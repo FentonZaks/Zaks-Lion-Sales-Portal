@@ -91,7 +91,8 @@ define(['N/file', 'N/record', 'N/search', 'N/ui/serverWidget'], function(file, r
                     isDynamic: true
                 });
 
-                var DEFAULT_LOCATION_ID = 1;
+                // Hardcoded to Zaks - Edmonton Warehouse as requested by user
+                var DEFAULT_LOCATION_ID = 2;
 
                 invRec.setValue({ fieldId: 'entity', value: customerId });
                 invRec.setValue({ fieldId: 'location', value: DEFAULT_LOCATION_ID });
@@ -138,7 +139,31 @@ define(['N/file', 'N/record', 'N/search', 'N/ui/serverWidget'], function(file, r
                         invRec.setCurrentSublistValue({ sublistId: 'item', fieldId: 'rate', value: parseFloat(itemRow.rate) });
                     }
 
-                    invRec.setCurrentSublistValue({ sublistId: 'item', fieldId: 'location', value: DEFAULT_LOCATION_ID });
+                    var locationMap = {
+                        'Zaks - Edmonton Warehouse': 2,
+                        'Zaks - Vancouver Warehouse': 3,
+                        'Lion - Edmonton Warehouse': 5,
+                        'Lion USA - Warehouse Broadrange Logistics': 6,
+                        'Lion USA - Ferndale WA': 7,
+                        'Lion - Vancouver Warehouse': 8,
+                        'Zaks - Defective Vancouver Warehouse': 9,
+                        'Lion - Defective Warehouse YYC': 10,
+                        'Lion USA - Defective Warehouse Broadrange Logistics': 11,
+                        'Zaks - Defective Main Warehouse': 12,
+                        'Zaks - Defective Edmonton Warehouse': 14,
+                        'Lion USA - Defective Warehouse Ferndale WA': 15,
+                        'Lion Imports USA Inc.': 18,
+                        'Lion USA - Walgreen Warehouse': 19,
+                        'Lion - Warehouse YYC : Zaks Foods ULC': 20,
+                        'Zaks - Main Warehouse YYC : Zaks Foods ULC': 22
+                    };
+
+                    var lineLocationId = DEFAULT_LOCATION_ID;
+                    if (itemRow.locationName && locationMap[itemRow.locationName]) {
+                        lineLocationId = locationMap[itemRow.locationName];
+                    }
+
+                    invRec.setCurrentSublistValue({ sublistId: 'item', fieldId: 'location', value: lineLocationId });
 
                     if (itemRow.comment) {
                         invRec.setCurrentSublistValue({ sublistId: 'item', fieldId: 'description', value: 'Portal Note: ' + itemRow.comment });
